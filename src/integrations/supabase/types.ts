@@ -73,6 +73,69 @@ export type Database = {
           },
         ]
       }
+      installments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          created_by: string | null
+          due_date: string
+          id: string
+          installment_number: number
+          notes: string | null
+          payment_date: string | null
+          payment_id: string
+          payment_method: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          total_installments: number
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          created_by?: string | null
+          due_date: string
+          id?: string
+          installment_number: number
+          notes?: string | null
+          payment_date?: string | null
+          payment_id: string
+          payment_method?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          total_installments: number
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          created_by?: string | null
+          due_date?: string
+          id?: string
+          installment_number?: number
+          notes?: string | null
+          payment_date?: string | null
+          payment_id?: string
+          payment_method?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          total_installments?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "installments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           created_at: string | null
