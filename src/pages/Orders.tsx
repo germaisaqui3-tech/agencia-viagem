@@ -11,6 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Plus, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
+import { orderSchema } from "@/lib/validations";
+import { z } from "zod";
 
 const Orders = () => {
   const navigate = useNavigate();
@@ -62,44 +64,62 @@ const Orders = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    try {
+      // Validate form data
+      const validatedData = orderSchema.parse(formData);
 
-    const selectedPackage = packages.find((p) => p.id === formData.package_id);
-    if (!selectedPackage) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-    const totalAmount = Number(selectedPackage.price) * parseInt(formData.number_of_travelers);
-    const orderNumber = `ORD-${Date.now()}`;
+      const selectedPackage = packages.find((p) => p.id === validatedData.package_id);
+      if (!selectedPackage) {
+        toast.error("Pacote selecionado não encontrado");
+        setLoading(false);
+        return;
+      }
 
-    const { error } = await supabase.from("orders").insert([
-      {
-        order_number: orderNumber,
-        customer_id: formData.customer_id,
-        package_id: formData.package_id,
-        number_of_travelers: parseInt(formData.number_of_travelers),
-        total_amount: totalAmount,
-        travel_date: formData.travel_date,
-        special_requests: formData.special_requests,
-        created_by: session.user.id,
-      },
-    ]);
+      const totalAmount = Number(selectedPackage.price) * parseInt(validatedData.number_of_travelers);
+      const orderNumber = `ORD-${Date.now()}`;
 
-    setLoading(false);
-    if (error) {
-      toast.error("Erro ao criar pedido");
-      return;
+      const { error } = await supabase.from("orders").insert([
+        {
+          order_number: orderNumber,
+          customer_id: validatedData.customer_id,
+          package_id: validatedData.package_id,
+          number_of_travelers: parseInt(validatedData.number_of_travelers),
+          total_amount: totalAmount,
+          travel_date: validatedData.travel_date,
+          special_requests: validatedData.special_requests,
+          created_by: session.user.id,
+        },
+      ]);
+
+      if (error) {
+        toast.error("Erro ao criar pedido");
+        setLoading(false);
+        return;
+      }
+
+      toast.success("Pedido criado com sucesso!");
+      setOpen(false);
+      setFormData({
+        customer_id: "",
+        package_id: "",
+        number_of_travelers: "1",
+        travel_date: "",
+        special_requests: "",
+      });
+      loadData();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        toast.error(firstError.message);
+      } else {
+        toast.error("Erro ao validar dados do formulário");
+      }
+    } finally {
+      setLoading(false);
     }
-
-    toast.success("Pedido criado com sucesso!");
-    setOpen(false);
-    setFormData({
-      customer_id: "",
-      package_id: "",
-      number_of_travelers: "1",
-      travel_date: "",
-      special_requests: "",
-    });
-    loadData();
   };
 
   const getStatusBadge = (status: string) => {

@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Plus, Users } from "lucide-react";
 import { toast } from "sonner";
+import { customerSchema } from "@/lib/validations";
+import { z } from "zod";
 
 const Customers = () => {
   const navigate = useNavigate();
@@ -55,36 +57,70 @@ const Customers = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    try {
+      // Validate form data
+      const validatedData = customerSchema.parse(formData);
 
-    const { error } = await supabase.from("customers").insert([
-      {
-        ...formData,
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      // Create insert object with required fields typed correctly
+      const insertData: {
+        full_name: string;
+        email: string;
+        phone: string;
+        cpf?: string;
+        birth_date?: string;
+        address?: string;
+        city?: string;
+        state?: string;
+        zip_code?: string;
+        created_by: string;
+      } = {
+        full_name: validatedData.full_name,
+        email: validatedData.email,
+        phone: validatedData.phone,
+        ...(validatedData.cpf && { cpf: validatedData.cpf }),
+        ...(validatedData.birth_date && { birth_date: validatedData.birth_date }),
+        ...(validatedData.address && { address: validatedData.address }),
+        ...(validatedData.city && { city: validatedData.city }),
+        ...(validatedData.state && { state: validatedData.state }),
+        ...(validatedData.zip_code && { zip_code: validatedData.zip_code }),
         created_by: session.user.id,
-      },
-    ]);
+      };
 
-    setLoading(false);
-    if (error) {
-      toast.error("Erro ao criar cliente");
-      return;
+      const { error } = await supabase.from("customers").insert([insertData]);
+
+      if (error) {
+        toast.error("Erro ao criar cliente");
+        setLoading(false);
+        return;
+      }
+
+      toast.success("Cliente cadastrado com sucesso!");
+      setOpen(false);
+      setFormData({
+        full_name: "",
+        email: "",
+        phone: "",
+        cpf: "",
+        birth_date: "",
+        address: "",
+        city: "",
+        state: "",
+        zip_code: "",
+      });
+      loadCustomers();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        toast.error(firstError.message);
+      } else {
+        toast.error("Erro ao validar dados do formulário");
+      }
+    } finally {
+      setLoading(false);
     }
-
-    toast.success("Cliente cadastrado com sucesso!");
-    setOpen(false);
-    setFormData({
-      full_name: "",
-      email: "",
-      phone: "",
-      cpf: "",
-      birth_date: "",
-      address: "",
-      city: "",
-      state: "",
-      zip_code: "",
-    });
-    loadCustomers();
   };
 
   return (

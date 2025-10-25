@@ -1,0 +1,103 @@
+import { z } from "zod";
+
+// Customer validation schema
+export const customerSchema = z.object({
+  full_name: z
+    .string()
+    .trim()
+    .min(1, "Nome é obrigatório")
+    .max(100, "Nome deve ter no máximo 100 caracteres"),
+  email: z
+    .string()
+    .trim()
+    .email("Email inválido")
+    .max(255, "Email deve ter no máximo 255 caracteres"),
+  phone: z
+    .string()
+    .trim()
+    .min(1, "Telefone é obrigatório")
+    .regex(/^[\d\s\(\)\-\+]+$/, "Telefone deve conter apenas números e símbolos válidos")
+    .max(20, "Telefone deve ter no máximo 20 caracteres"),
+  cpf: z
+    .string()
+    .trim()
+    .refine((val) => val === "" || /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(val), "CPF deve estar no formato 000.000.000-00")
+    .transform((val) => val || undefined),
+  birth_date: z
+    .string()
+    .refine((val) => val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), "Data inválida")
+    .transform((val) => val || undefined),
+  address: z
+    .string()
+    .trim()
+    .max(200, "Endereço deve ter no máximo 200 caracteres")
+    .transform((val) => val || undefined),
+  city: z
+    .string()
+    .trim()
+    .max(100, "Cidade deve ter no máximo 100 caracteres")
+    .transform((val) => val || undefined),
+  state: z
+    .string()
+    .trim()
+    .max(2, "Estado deve ter 2 caracteres")
+    .transform((val) => val || undefined),
+  zip_code: z
+    .string()
+    .trim()
+    .refine((val) => val === "" || /^\d{5}-?\d{3}$/.test(val), "CEP deve estar no formato 00000-000")
+    .transform((val) => val || undefined),
+});
+
+// Travel package validation schema
+export const packageSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Nome é obrigatório")
+    .max(200, "Nome deve ter no máximo 200 caracteres"),
+  description: z
+    .string()
+    .trim()
+    .max(2000, "Descrição deve ter no máximo 2000 caracteres")
+    .transform((val) => val || undefined),
+  destination: z
+    .string()
+    .trim()
+    .min(1, "Destino é obrigatório")
+    .max(200, "Destino deve ter no máximo 200 caracteres"),
+  duration_days: z
+    .string()
+    .refine((val) => !isNaN(Number(val)) && Number(val) > 0, "Duração deve ser maior que 0")
+    .refine((val) => Number(val) <= 365, "Duração deve ser no máximo 365 dias"),
+  price: z
+    .string()
+    .refine((val) => !isNaN(Number(val)) && Number(val) > 0, "Preço deve ser maior que 0")
+    .refine((val) => Number(val) <= 1000000, "Preço deve ser no máximo R$ 1.000.000"),
+  available_spots: z
+    .string()
+    .refine((val) => !isNaN(Number(val)) && Number(val) >= 0, "Vagas deve ser 0 ou maior")
+    .refine((val) => Number(val) <= 1000, "Vagas deve ser no máximo 1000"),
+});
+
+// Order validation schema
+export const orderSchema = z.object({
+  customer_id: z.string().uuid("Selecione um cliente válido"),
+  package_id: z.string().uuid("Selecione um pacote válido"),
+  number_of_travelers: z
+    .string()
+    .refine((val) => !isNaN(Number(val)) && Number(val) > 0, "Número de viajantes deve ser maior que 0")
+    .refine((val) => Number(val) <= 100, "Número de viajantes deve ser no máximo 100"),
+  travel_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
+  special_requests: z
+    .string()
+    .trim()
+    .max(1000, "Solicitações especiais deve ter no máximo 1000 caracteres")
+    .transform((val) => val || undefined),
+});
+
+export type CustomerFormData = z.infer<typeof customerSchema>;
+export type PackageFormData = z.infer<typeof packageSchema>;
+export type OrderFormData = z.infer<typeof orderSchema>;

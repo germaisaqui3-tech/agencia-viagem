@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ArrowLeft, Plus, Plane } from "lucide-react";
 import { toast } from "sonner";
+import { packageSchema } from "@/lib/validations";
+import { z } from "zod";
 
 const Packages = () => {
   const navigate = useNavigate();
@@ -52,36 +54,61 @@ const Packages = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    try {
+      // Validate form data
+      const validatedData = packageSchema.parse(formData);
 
-    const { error } = await supabase.from("travel_packages").insert([
-      {
-        ...formData,
-        duration_days: parseInt(formData.duration_days),
-        price: parseFloat(formData.price),
-        available_spots: parseInt(formData.available_spots),
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      // Create insert object with required fields typed correctly
+      const insertData: {
+        name: string;
+        destination: string;
+        duration_days: number;
+        price: number;
+        available_spots: number;
+        description?: string;
+        created_by: string;
+      } = {
+        name: validatedData.name,
+        destination: validatedData.destination,
+        duration_days: parseInt(validatedData.duration_days),
+        price: parseFloat(validatedData.price),
+        available_spots: parseInt(validatedData.available_spots),
+        ...(validatedData.description && { description: validatedData.description }),
         created_by: session.user.id,
-      },
-    ]);
+      };
 
-    setLoading(false);
-    if (error) {
-      toast.error("Erro ao criar pacote");
-      return;
+      const { error } = await supabase.from("travel_packages").insert([insertData]);
+
+      if (error) {
+        toast.error("Erro ao criar pacote");
+        setLoading(false);
+        return;
+      }
+
+      toast.success("Pacote criado com sucesso!");
+      setOpen(false);
+      setFormData({
+        name: "",
+        description: "",
+        destination: "",
+        duration_days: "",
+        price: "",
+        available_spots: "",
+      });
+      loadPackages();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        toast.error(firstError.message);
+      } else {
+        toast.error("Erro ao validar dados do formulário");
+      }
+    } finally {
+      setLoading(false);
     }
-
-    toast.success("Pacote criado com sucesso!");
-    setOpen(false);
-    setFormData({
-      name: "",
-      description: "",
-      destination: "",
-      duration_days: "",
-      price: "",
-      available_spots: "",
-    });
-    loadPackages();
   };
 
   return (
