@@ -26,6 +26,7 @@ export type Database = {
           full_name: string
           id: string
           notes: string | null
+          organization_id: string
           phone: string
           state: string | null
           updated_at: string | null
@@ -42,6 +43,7 @@ export type Database = {
           full_name: string
           id?: string
           notes?: string | null
+          organization_id: string
           phone: string
           state?: string | null
           updated_at?: string | null
@@ -58,6 +60,7 @@ export type Database = {
           full_name?: string
           id?: string
           notes?: string | null
+          organization_id?: string
           phone?: string
           state?: string | null
           updated_at?: string | null
@@ -71,6 +74,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "customers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       installments: {
@@ -82,6 +92,7 @@ export type Database = {
           id: string
           installment_number: number
           notes: string | null
+          organization_id: string
           payment_date: string | null
           payment_id: string
           payment_method: string | null
@@ -97,6 +108,7 @@ export type Database = {
           id?: string
           installment_number: number
           notes?: string | null
+          organization_id: string
           payment_date?: string | null
           payment_id: string
           payment_method?: string | null
@@ -112,6 +124,7 @@ export type Database = {
           id?: string
           installment_number?: number
           notes?: string | null
+          organization_id?: string
           payment_date?: string | null
           payment_id?: string
           payment_method?: string | null
@@ -125,6 +138,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
@@ -144,6 +164,7 @@ export type Database = {
           id: string
           number_of_travelers: number | null
           order_number: string
+          organization_id: string
           package_id: string
           special_requests: string | null
           status: Database["public"]["Enums"]["order_status"] | null
@@ -158,6 +179,7 @@ export type Database = {
           id?: string
           number_of_travelers?: number | null
           order_number: string
+          organization_id: string
           package_id: string
           special_requests?: string | null
           status?: Database["public"]["Enums"]["order_status"] | null
@@ -172,6 +194,7 @@ export type Database = {
           id?: string
           number_of_travelers?: number | null
           order_number?: string
+          organization_id?: string
           package_id?: string
           special_requests?: string | null
           status?: Database["public"]["Enums"]["order_status"] | null
@@ -195,6 +218,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "orders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orders_package_id_fkey"
             columns: ["package_id"]
             isOneToOne: false
@@ -202,6 +232,175 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      organization_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          organization_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          organization_id: string
+          role?: Database["public"]["Enums"]["org_role"]
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          organization_id?: string
+          role?: Database["public"]["Enums"]["org_role"]
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_invites_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_invites_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_members: {
+        Row: {
+          created_at: string | null
+          id: string
+          invited_at: string | null
+          invited_by: string | null
+          is_active: boolean | null
+          joined_at: string | null
+          organization_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          is_active?: boolean | null
+          joined_at?: string | null
+          organization_id: string
+          role?: Database["public"]["Enums"]["org_role"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          is_active?: boolean | null
+          joined_at?: string | null
+          organization_id?: string
+          role?: Database["public"]["Enums"]["org_role"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          address: string | null
+          city: string | null
+          cnpj: string | null
+          created_at: string | null
+          email: string
+          id: string
+          is_active: boolean | null
+          legal_name: string | null
+          logo_url: string | null
+          max_users: number | null
+          name: string
+          phone: string | null
+          state: string | null
+          subscription_tier: string | null
+          updated_at: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          cnpj?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          is_active?: boolean | null
+          legal_name?: string | null
+          logo_url?: string | null
+          max_users?: number | null
+          name: string
+          phone?: string | null
+          state?: string | null
+          subscription_tier?: string | null
+          updated_at?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          cnpj?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          is_active?: boolean | null
+          legal_name?: string | null
+          logo_url?: string | null
+          max_users?: number | null
+          name?: string
+          phone?: string | null
+          state?: string | null
+          subscription_tier?: string | null
+          updated_at?: string | null
+          zip_code?: string | null
+        }
+        Relationships: []
       }
       payments: {
         Row: {
@@ -212,6 +411,7 @@ export type Database = {
           id: string
           notes: string | null
           order_id: string
+          organization_id: string
           payment_date: string | null
           payment_method: string | null
           status: Database["public"]["Enums"]["payment_status"] | null
@@ -225,6 +425,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_id: string
+          organization_id: string
           payment_date?: string | null
           payment_method?: string | null
           status?: Database["public"]["Enums"]["payment_status"] | null
@@ -238,6 +439,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_id?: string
+          organization_id?: string
           payment_date?: string | null
           payment_method?: string | null
           status?: Database["public"]["Enums"]["payment_status"] | null
@@ -258,11 +460,19 @@ export type Database = {
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
         Row: {
           created_at: string | null
+          default_organization_id: string | null
           email: string
           full_name: string
           id: string
@@ -272,6 +482,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          default_organization_id?: string | null
           email: string
           full_name: string
           id: string
@@ -281,6 +492,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          default_organization_id?: string | null
           email?: string
           full_name?: string
           id?: string
@@ -288,7 +500,15 @@ export type Database = {
           role?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_default_organization_id_fkey"
+            columns: ["default_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       travel_packages: {
         Row: {
@@ -303,6 +523,7 @@ export type Database = {
           image_url: string | null
           is_active: boolean | null
           name: string
+          organization_id: string
           price: number
           start_date: string | null
           updated_at: string | null
@@ -319,6 +540,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           name: string
+          organization_id: string
           price: number
           start_date?: string | null
           updated_at?: string | null
@@ -335,6 +557,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           name?: string
+          organization_id?: string
           price?: number
           start_date?: string | null
           updated_at?: string | null
@@ -345,6 +568,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "travel_packages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -376,6 +606,15 @@ export type Database = {
     }
     Functions: {
       generate_order_number: { Args: never; Returns: string }
+      get_user_default_org: { Args: { _user_id: string }; Returns: string }
+      has_org_role: {
+        Args: {
+          _org_id: string
+          _role: Database["public"]["Enums"]["org_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -383,10 +622,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_org_admin: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_org_member: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "agent" | "user"
       order_status: "pending" | "confirmed" | "cancelled" | "completed"
+      org_role: "owner" | "admin" | "agent" | "viewer"
       payment_status: "pending" | "partial" | "paid" | "overdue"
     }
     CompositeTypes: {
@@ -517,6 +765,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "agent", "user"],
       order_status: ["pending", "confirmed", "cancelled", "completed"],
+      org_role: ["owner", "admin", "agent", "viewer"],
       payment_status: ["pending", "partial", "paid", "overdue"],
     },
   },
