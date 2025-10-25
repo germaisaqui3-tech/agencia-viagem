@@ -18,6 +18,8 @@ import { SearchInput } from "@/components/filters/SearchInput";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import { StatusFilter } from "@/components/filters/StatusFilter";
 import { ValueRangeFilter } from "@/components/filters/ValueRangeFilter";
+import { QuickAddCustomer } from "@/components/orders/QuickAddCustomer";
+import { QuickAddPackage } from "@/components/orders/QuickAddPackage";
 
 const Orders = () => {
   const navigate = useNavigate();
@@ -51,6 +53,8 @@ const Orders = () => {
     minValue: "",
     maxValue: "",
   });
+  const [addCustomerOpen, setAddCustomerOpen] = useState(false);
+  const [addPackageOpen, setAddPackageOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -292,6 +296,18 @@ const Orders = () => {
     });
   };
 
+  const handleCustomerCreated = (newCustomerId: string) => {
+    loadData();
+    setFormData({ ...formData, customer_id: newCustomerId });
+    setAddCustomerOpen(false);
+  };
+
+  const handlePackageCreated = (newPackageId: string) => {
+    loadData();
+    setFormData({ ...formData, package_id: newPackageId });
+    setAddPackageOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
@@ -323,7 +339,14 @@ const Orders = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="customer">Cliente</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="customer">Cliente</Label>
+                      <QuickAddCustomer
+                        open={addCustomerOpen}
+                        onOpenChange={setAddCustomerOpen}
+                        onCustomerCreated={handleCustomerCreated}
+                      />
+                    </div>
                     <Select
                       value={formData.customer_id}
                       onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
@@ -342,7 +365,14 @@ const Orders = () => {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="package">Pacote</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="package">Pacote</Label>
+                      <QuickAddPackage
+                        open={addPackageOpen}
+                        onOpenChange={setAddPackageOpen}
+                        onPackageCreated={handlePackageCreated}
+                      />
+                    </div>
                     <Select
                       value={formData.package_id}
                       onValueChange={(value) => setFormData({ ...formData, package_id: value })}
