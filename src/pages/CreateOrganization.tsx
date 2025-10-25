@@ -41,8 +41,7 @@ export default function CreateOrganization() {
         });
 
       if (createError) {
-        console.error("Erro ao criar organização:", createError);
-        toast.error(`Erro ao criar organização: ${createError.message}`);
+        toast.error("Erro ao criar organização");
         setLoading(false);
         return;
       }

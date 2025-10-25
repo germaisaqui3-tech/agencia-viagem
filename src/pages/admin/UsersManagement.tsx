@@ -74,7 +74,6 @@ export default function UsersManagement() {
 
       setUsers(usersWithRoles);
     } catch (error) {
-      console.error("Error loading users:", error);
       toast.error("Erro ao carregar usuários");
     } finally {
       setLoading(false);
@@ -114,7 +113,6 @@ export default function UsersManagement() {
       setDialogOpen(false);
       loadUsers();
     } catch (error) {
-      console.error("Error updating role:", error);
       toast.error("Erro ao atualizar role");
     }
   };

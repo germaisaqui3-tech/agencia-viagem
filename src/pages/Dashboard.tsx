@@ -225,7 +225,6 @@ const Dashboard = () => {
         conversionRate,
       });
     } catch (error) {
-      console.error("Erro ao carregar estatísticas:", error);
       toast.error("Erro ao carregar estatísticas");
     }
   };

@@ -151,10 +151,9 @@ export default function Delinquency() {
         avg_days_overdue: Math.round(avgDays),
       });
     } catch (error: any) {
-      console.error("Error loading delinquency data:", error);
       toast({
         title: "Erro ao carregar dados",
-        description: error.message,
+        description: "Não foi possível carregar os dados de inadimplência",
         variant: "destructive",
       });
     } finally {
@@ -197,10 +196,9 @@ export default function Delinquency() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) loadDelinquencyData(session.user.id);
     } catch (error: any) {
-      console.error("Error sending reminder:", error);
       toast({
         title: "Erro ao enviar lembrete",
-        description: error.message,
+        description: "Não foi possível enviar o lembrete",
         variant: "destructive",
       });
     } finally {

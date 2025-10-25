@@ -47,7 +47,6 @@ export const OrganizationSwitcher = () => {
       .eq("is_active", true);
 
     if (error) {
-      console.error("Erro ao carregar organizações:", error);
       return;
     }
 

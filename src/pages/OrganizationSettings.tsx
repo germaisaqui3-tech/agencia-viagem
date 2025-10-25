@@ -113,7 +113,6 @@ export default function OrganizationSettings() {
       .order("joined_at", { ascending: true });
 
     if (error) {
-      console.error("Erro ao carregar membros:", error);
       return;
     }
     setMembers(data as Member[]);
@@ -131,7 +130,6 @@ export default function OrganizationSettings() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Erro ao carregar convites:", error);
       return;
     }
     setInvites(data as Invite[]);

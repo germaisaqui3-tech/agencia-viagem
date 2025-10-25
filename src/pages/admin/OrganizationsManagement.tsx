@@ -67,7 +67,6 @@ export default function OrganizationsManagement() {
 
       setOrganizations(orgsWithMembers);
     } catch (error) {
-      console.error("Error loading organizations:", error);
       toast.error("Erro ao carregar organizações");
     } finally {
       setLoading(false);
