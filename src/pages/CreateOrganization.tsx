@@ -32,54 +32,19 @@ export default function CreateOrganization() {
       // Validar dados
       const validatedData = organizationSchema.parse(formData);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Usuário não autenticado");
-        setLoading(false);
-        return;
-      }
+      // Criar organização via função do banco
+      const { data: orgId, error: createError } = await supabase
+        .rpc('create_organization_with_membership', {
+          org_name: validatedData.name,
+          org_email: validatedData.email,
+          org_cnpj: validatedData.cnpj || null,
+        });
 
-      // Criar organização
-      const { data: org, error: orgError } = await supabase
-        .from("organizations")
-        .insert({
-          name: validatedData.name,
-          email: validatedData.email,
-          cnpj: validatedData.cnpj || null,
-        })
-        .select()
-        .single();
-
-      if (orgError) {
+      if (createError) {
+        console.error("Erro ao criar organização:", createError);
         toast.error("Erro ao criar organização");
         setLoading(false);
         return;
-      }
-
-      // Adicionar usuário como owner
-      const { error: memberError } = await supabase
-        .from("organization_members")
-        .insert({
-          organization_id: org.id,
-          user_id: user.id,
-          role: "owner",
-          joined_at: new Date().toISOString(),
-        });
-
-      if (memberError) {
-        toast.error("Erro ao adicionar membro");
-        setLoading(false);
-        return;
-      }
-
-      // Definir como organização padrão
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ default_organization_id: org.id })
-        .eq("id", user.id);
-
-      if (profileError) {
-        console.error("Erro ao atualizar perfil:", profileError);
       }
 
       toast.success("Organização criada com sucesso!");

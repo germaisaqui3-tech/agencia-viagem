@@ -605,6 +605,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_organization_with_membership: {
+        Args: { org_cnpj?: string; org_email: string; org_name: string }
+        Returns: string
+      }
       generate_order_number: { Args: never; Returns: string }
       get_user_default_org: { Args: { _user_id: string }; Returns: string }
       has_org_role: {
