@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { MainLayout } from "./components/layout/MainLayout";
+import { ProtectedRoute } from "./components/admin/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -19,6 +21,8 @@ import Delinquency from "./pages/Delinquency";
 import OrganizationSettings from "./pages/OrganizationSettings";
 import CreateOrganization from "./pages/CreateOrganization";
 import AcceptInvite from "./pages/AcceptInvite";
+import UsersManagement from "./pages/admin/UsersManagement";
+import OrganizationsManagement from "./pages/admin/OrganizationsManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,20 +36,22 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/packages" element={<Packages />} />
-          <Route path="/customers" element={<Customers />} />
-          <Route path="/customers/:id" element={<CustomerView />} />
-          <Route path="/customers/:id/edit" element={<CustomerEdit />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/orders/:id" element={<OrderView />} />
-          <Route path="/orders/:id/edit" element={<OrderEdit />} />
-          <Route path="/payments" element={<Payments />} />
-          <Route path="/birthdays" element={<Birthdays />} />
-          <Route path="/delinquency" element={<Delinquency />} />
-          <Route path="/organization/settings" element={<OrganizationSettings />} />
+          <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
+          <Route path="/packages" element={<MainLayout><Packages /></MainLayout>} />
+          <Route path="/customers" element={<MainLayout><Customers /></MainLayout>} />
+          <Route path="/customers/:id" element={<MainLayout><CustomerView /></MainLayout>} />
+          <Route path="/customers/:id/edit" element={<MainLayout><CustomerEdit /></MainLayout>} />
+          <Route path="/orders" element={<MainLayout><Orders /></MainLayout>} />
+          <Route path="/orders/:id" element={<MainLayout><OrderView /></MainLayout>} />
+          <Route path="/orders/:id/edit" element={<MainLayout><OrderEdit /></MainLayout>} />
+          <Route path="/payments" element={<MainLayout><Payments /></MainLayout>} />
+          <Route path="/birthdays" element={<MainLayout><Birthdays /></MainLayout>} />
+          <Route path="/delinquency" element={<MainLayout><Delinquency /></MainLayout>} />
+          <Route path="/organization/settings" element={<MainLayout><OrganizationSettings /></MainLayout>} />
           <Route path="/organization/create" element={<CreateOrganization />} />
           <Route path="/invite/:token" element={<AcceptInvite />} />
+          <Route path="/admin/users" element={<MainLayout><ProtectedRoute><UsersManagement /></ProtectedRoute></MainLayout>} />
+          <Route path="/admin/organizations" element={<MainLayout><ProtectedRoute><OrganizationsManagement /></ProtectedRoute></MainLayout>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
