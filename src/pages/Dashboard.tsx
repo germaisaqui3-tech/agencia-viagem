@@ -3,19 +3,42 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plane, Users, Package, ShoppingCart, DollarSign, Calendar, LogOut, AlertTriangle } from "lucide-react";
+import { Plane, Users, Package, ShoppingCart, DollarSign, Calendar, LogOut, AlertTriangle, TrendingUp, TrendingDown, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import type { Session } from "@supabase/supabase-js";
+import { QuickFilterButtons } from "@/components/filters/QuickFilterButtons";
+import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
+import { StatusCheckboxGroup } from "@/components/filters/StatusCheckboxGroup";
+
+interface Filters {
+  quickFilter: string;
+  dateRange: {
+    start: string;
+    end: string;
+  };
+  statuses: string[];
+}
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
+  const [filters, setFilters] = useState<Filters>({
+    quickFilter: "all",
+    dateRange: { start: "", end: "" },
+    statuses: ["pending", "confirmed", "completed", "cancelled"],
+  });
   const [stats, setStats] = useState({
     packages: 0,
     customers: 0,
     orders: 0,
     revenue: 0,
     pending: 0,
+    confirmedRevenue: 0,
+    received: 0,
+    overdue: 0,
+    conversionRate: 0,
   });
 
   useEffect(() => {
@@ -25,7 +48,7 @@ const Dashboard = () => {
         return;
       }
       setSession(session);
-      loadStats(session.user.id);
+      loadStats(session.user.id, filters);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -33,33 +56,170 @@ const Dashboard = () => {
         navigate("/auth");
       } else {
         setSession(session);
-        loadStats(session.user.id);
+        loadStats(session.user.id, filters);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const loadStats = async (userId: string) => {
+  useEffect(() => {
+    if (session) {
+      loadStats(session.user.id, filters);
+    }
+  }, [filters, session]);
+
+  const getDateRange = (filters: Filters): { startDate: string; endDate: string } => {
+    const now = new Date();
+    let startDate = "";
+    let endDate = now.toISOString();
+
+    if (filters.quickFilter !== "all") {
+      const startDateTime = new Date();
+      
+      switch (filters.quickFilter) {
+        case "today":
+          startDateTime.setHours(0, 0, 0, 0);
+          break;
+        case "week":
+          const dayOfWeek = startDateTime.getDay();
+          startDateTime.setDate(startDateTime.getDate() - dayOfWeek);
+          startDateTime.setHours(0, 0, 0, 0);
+          break;
+        case "month":
+          startDateTime.setDate(1);
+          startDateTime.setHours(0, 0, 0, 0);
+          break;
+        case "year":
+          startDateTime.setMonth(0, 1);
+          startDateTime.setHours(0, 0, 0, 0);
+          break;
+        case "7days":
+          startDateTime.setDate(startDateTime.getDate() - 7);
+          startDateTime.setHours(0, 0, 0, 0);
+          break;
+        case "30days":
+          startDateTime.setDate(startDateTime.getDate() - 30);
+          startDateTime.setHours(0, 0, 0, 0);
+          break;
+        case "90days":
+          startDateTime.setDate(startDateTime.getDate() - 90);
+          startDateTime.setHours(0, 0, 0, 0);
+          break;
+      }
+      
+      startDate = startDateTime.toISOString();
+    }
+
+    if (filters.dateRange.start) {
+      startDate = new Date(filters.dateRange.start).toISOString();
+    }
+    if (filters.dateRange.end) {
+      endDate = new Date(filters.dateRange.end + "T23:59:59").toISOString();
+    }
+
+    return { startDate, endDate };
+  };
+
+  const loadStats = async (userId: string, filters: Filters) => {
     try {
-      const [packagesRes, customersRes, ordersRes, paymentsRes] = await Promise.all([
-        supabase.from("travel_packages").select("*", { count: "exact" }).eq("created_by", userId),
-        supabase.from("customers").select("*", { count: "exact" }).eq("created_by", userId),
-        supabase.from("orders").select("total_amount").eq("created_by", userId),
-        supabase.from("payments").select("*").eq("created_by", userId).eq("status", "pending"),
+      const { startDate, endDate } = getDateRange(filters);
+
+      // Query base para pacotes (não filtrado por data)
+      const packagesRes = await supabase
+        .from("travel_packages")
+        .select("*", { count: "exact" })
+        .eq("created_by", userId);
+
+      // Query para clientes com filtro de data
+      let customersQuery = supabase
+        .from("customers")
+        .select("*", { count: "exact" })
+        .eq("created_by", userId);
+      
+      if (startDate) customersQuery = customersQuery.gte("created_at", startDate);
+      if (endDate) customersQuery = customersQuery.lte("created_at", endDate);
+
+      // Query para pedidos com filtro de data e status
+      let ordersQuery = supabase
+        .from("orders")
+        .select("total_amount, status, created_at")
+        .eq("created_by", userId);
+      
+      if (startDate) ordersQuery = ordersQuery.gte("created_at", startDate);
+      if (endDate) ordersQuery = ordersQuery.lte("created_at", endDate);
+      if (filters.statuses.length > 0) ordersQuery = ordersQuery.in("status", filters.statuses as ("pending" | "confirmed" | "completed" | "cancelled")[]);
+
+      // Query para pagamentos pendentes
+      let paymentsQuery = supabase
+        .from("payments")
+        .select("*")
+        .eq("created_by", userId)
+        .eq("status", "pending");
+      
+      if (startDate) paymentsQuery = paymentsQuery.gte("created_at", startDate);
+      if (endDate) paymentsQuery = paymentsQuery.lte("created_at", endDate);
+
+      // Query para installments para calcular valores recebidos e atrasados
+      let installmentsQuery = supabase
+        .from("installments")
+        .select("amount, status, payment_date")
+        .eq("created_by", userId);
+
+      const [packagesResult, customersResult, ordersResult, paymentsResult, installmentsResult] = await Promise.all([
+        packagesRes,
+        customersQuery,
+        ordersQuery,
+        paymentsQuery,
+        installmentsQuery,
       ]);
 
-      const revenue = ordersRes.data?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
+      const orders = ordersResult.data || [];
+      const installments = installmentsResult.data || [];
+
+      // Calcular receita total
+      const revenue = orders.reduce((sum, order) => sum + Number(order.total_amount), 0);
+
+      // Calcular receita confirmada (apenas pedidos confirmed e completed)
+      const confirmedRevenue = orders
+        .filter(order => order.status === "confirmed" || order.status === "completed")
+        .reduce((sum, order) => sum + Number(order.total_amount), 0);
+
+      // Calcular valor recebido (installments pagos no período)
+      const received = installments
+        .filter(inst => {
+          if (inst.status !== "paid" || !inst.payment_date) return false;
+          const paymentDate = new Date(inst.payment_date).toISOString();
+          if (startDate && paymentDate < startDate) return false;
+          if (endDate && paymentDate > endDate) return false;
+          return true;
+        })
+        .reduce((sum, inst) => sum + Number(inst.amount), 0);
+
+      // Calcular valor atrasado
+      const overdue = installments
+        .filter(inst => inst.status === "overdue")
+        .reduce((sum, inst) => sum + Number(inst.amount), 0);
+
+      // Calcular taxa de conversão
+      const totalOrders = orders.length;
+      const confirmedOrders = orders.filter(order => order.status === "confirmed" || order.status === "completed").length;
+      const conversionRate = totalOrders > 0 ? (confirmedOrders / totalOrders) * 100 : 0;
 
       setStats({
-        packages: packagesRes.count || 0,
-        customers: customersRes.count || 0,
-        orders: ordersRes.data?.length || 0,
+        packages: packagesResult.count || 0,
+        customers: customersResult.count || 0,
+        orders: totalOrders,
         revenue,
-        pending: paymentsRes.data?.length || 0,
+        pending: paymentsResult.data?.length || 0,
+        confirmedRevenue,
+        received,
+        overdue,
+        conversionRate,
       });
     } catch (error) {
       console.error("Erro ao carregar estatísticas:", error);
+      toast.error("Erro ao carregar estatísticas");
     }
   };
 
@@ -97,33 +257,48 @@ const Dashboard = () => {
           <p className="text-muted-foreground">Visão geral do seu negócio</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Pacotes
-              </CardTitle>
-              <Package className="w-5 h-5 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stats.packages}</div>
-              <p className="text-xs text-muted-foreground mt-1">pacotes cadastrados</p>
-            </CardContent>
-          </Card>
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Filtros de Período
+            </CardTitle>
+            <CardDescription>Selecione o período para análise financeira</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <QuickFilterButtons
+                value={filters.quickFilter}
+                onChange={(value) => setFilters({ ...filters, quickFilter: value, dateRange: { start: "", end: "" } })}
+              />
+            </div>
 
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Clientes
-              </CardTitle>
-              <Users className="w-5 h-5 text-accent" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stats.customers}</div>
-              <p className="text-xs text-muted-foreground mt-1">clientes cadastrados</p>
-            </CardContent>
-          </Card>
+            <Separator />
 
+            <DateRangeFilter
+              startDate={filters.dateRange.start}
+              endDate={filters.dateRange.end}
+              onStartChange={(start) => setFilters({ ...filters, dateRange: { ...filters.dateRange, start }, quickFilter: "all" })}
+              onEndChange={(end) => setFilters({ ...filters, dateRange: { ...filters.dateRange, end }, quickFilter: "all" })}
+              label="Período Personalizado"
+            />
+
+            <Separator />
+
+            <StatusCheckboxGroup
+              selectedStatuses={filters.statuses}
+              onChange={(statuses) => setFilters({ ...filters, statuses })}
+            />
+          </CardContent>
+        </Card>
+
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold">
+            Estatísticas do Período: {filters.quickFilter === "all" ? "Todo o período" : filters.quickFilter === "today" ? "Hoje" : filters.quickFilter === "week" ? "Esta semana" : filters.quickFilter === "month" ? "Este mês" : filters.quickFilter === "year" ? "Este ano" : filters.quickFilter === "7days" ? "Últimos 7 dias" : filters.quickFilter === "30days" ? "Últimos 30 dias" : filters.quickFilter === "90days" ? "Últimos 90 dias" : "Período personalizado"}
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -133,7 +308,20 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{stats.orders}</div>
-              <p className="text-xs text-muted-foreground mt-1">pedidos realizados</p>
+              <p className="text-xs text-muted-foreground mt-1">pedidos no período</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Novos Clientes
+              </CardTitle>
+              <Users className="w-5 h-5 text-accent" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{stats.customers}</div>
+              <p className="text-xs text-muted-foreground mt-1">cadastrados no período</p>
             </CardContent>
           </Card>
 
@@ -142,28 +330,95 @@ const Dashboard = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Receita Total
               </CardTitle>
-              <DollarSign className="w-5 h-5 text-success" />
+              <DollarSign className="w-5 h-5 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
                 R$ {stats.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">em vendas</p>
+              <p className="text-xs text-muted-foreground mt-1">todos os pedidos</p>
             </CardContent>
           </Card>
 
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
+                Taxa de Conversão
+              </CardTitle>
+              <TrendingUp className="w-5 h-5 text-success" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{stats.conversionRate.toFixed(1)}%</div>
+              <p className="text-xs text-muted-foreground mt-1">pedidos confirmados</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="hover:shadow-lg transition-shadow border-success/50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Receita Confirmada
+              </CardTitle>
+              <CheckCircle2 className="w-5 h-5 text-success" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-success">
+                R$ {stats.confirmedRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">pedidos confirmados/completos</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow border-primary/50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Valor Recebido
+              </CardTitle>
+              <DollarSign className="w-5 h-5 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-primary">
+                R$ {stats.received.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">pagamentos recebidos</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow border-destructive/50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Valor Atrasado
+              </CardTitle>
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-destructive">
+                R$ {stats.overdue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">parcelas vencidas</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow border-secondary/50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 Contas Pendentes
               </CardTitle>
-              <Calendar className="w-5 h-5 text-destructive" />
+              <Calendar className="w-5 h-5 text-secondary" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{stats.pending}</div>
               <p className="text-xs text-muted-foreground mt-1">pagamentos pendentes</p>
             </CardContent>
           </Card>
+        </div>
+
+        <Separator className="my-8" />
+
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold">Acesso Rápido</h3>
+          <p className="text-sm text-muted-foreground">Navegue para as principais funcionalidades</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
