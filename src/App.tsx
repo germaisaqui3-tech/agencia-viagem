@@ -16,6 +16,9 @@ import OrderEdit from "./pages/OrderEdit";
 import Payments from "./pages/Payments";
 import Birthdays from "./pages/Birthdays";
 import Delinquency from "./pages/Delinquency";
+import OrganizationSettings from "./pages/OrganizationSettings";
+import CreateOrganization from "./pages/CreateOrganization";
+import AcceptInvite from "./pages/AcceptInvite";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +43,9 @@ const App = () => (
           <Route path="/payments" element={<Payments />} />
           <Route path="/birthdays" element={<Birthdays />} />
           <Route path="/delinquency" element={<Delinquency />} />
+          <Route path="/organization/settings" element={<OrganizationSettings />} />
+          <Route path="/organization/create" element={<CreateOrganization />} />
+          <Route path="/invite/:token" element={<AcceptInvite />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

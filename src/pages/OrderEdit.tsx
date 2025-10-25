@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
+import { useOrganization } from "@/hooks/useOrganization";
 
 interface Customer {
   id: string;
@@ -36,6 +37,7 @@ const OrderEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { organizationId } = useOrganization();
   const [loading, setLoading] = useState(true);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
@@ -54,7 +56,7 @@ const OrderEdit = () => {
 
     const [orderRes, customersRes, packagesRes] = await Promise.all([
       supabase.from("orders").select("*").eq("id", id).single(),
-      supabase.from("customers").select("id, full_name").eq("created_by", user.id),
+      supabase.from("customers").select("id, full_name"),
       supabase.from("travel_packages").select("id, name, price").eq("is_active", true)
     ]);
 

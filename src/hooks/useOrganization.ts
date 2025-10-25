@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useOrganization = () => {
+  const navigate = useNavigate();
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -33,10 +35,21 @@ export const useOrganization = () => {
             .eq('is_active', true)
             .order('joined_at', { ascending: true })
             .limit(1)
-            .single();
+            .maybeSingle();
 
           if (membership) {
             setOrganizationId(membership.organization_id);
+            // Atualizar como padrão
+            await supabase
+              .from('profiles')
+              .update({ default_organization_id: membership.organization_id })
+              .eq('id', user.id);
+          } else {
+            // Usuário não tem organização - redirecionar para criar
+            const currentPath = window.location.pathname;
+            if (currentPath !== '/organization/create' && currentPath !== '/auth' && !currentPath.startsWith('/invite/')) {
+              navigate('/organization/create');
+            }
           }
         }
       } catch (error) {
@@ -47,7 +60,8 @@ export const useOrganization = () => {
     };
 
     loadOrganization();
-  }, []);
+  }, [navigate]);
 
   return { organizationId, loading };
 };
+

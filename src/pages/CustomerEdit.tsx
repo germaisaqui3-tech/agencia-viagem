@@ -47,7 +47,6 @@ const CustomerEdit = () => {
       .from("customers")
       .select("*")
       .eq("id", id)
-      .eq("created_by", user.id)
       .single();
 
     if (data) {

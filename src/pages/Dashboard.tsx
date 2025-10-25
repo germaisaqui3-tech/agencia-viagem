@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plane, Users, Package, ShoppingCart, DollarSign, Calendar, LogOut, AlertTriangle, TrendingUp, TrendingDown, CheckCircle2 } from "lucide-react";
+import { Plane, Users, Package, ShoppingCart, DollarSign, Calendar, LogOut, AlertTriangle, TrendingUp, TrendingDown, CheckCircle2, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -12,6 +12,7 @@ import { QuickFilterButtons } from "@/components/filters/QuickFilterButtons";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import { StatusCheckboxGroup } from "@/components/filters/StatusCheckboxGroup";
 import { useOrganization } from "@/hooks/useOrganization";
+import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
 
 interface Filters {
   quickFilter: string;
@@ -250,10 +251,13 @@ const Dashboard = () => {
               <p className="text-sm text-muted-foreground">Sistema de Gestão</p>
             </div>
           </div>
-          <Button onClick={handleLogout} variant="ghost" size="sm">
-            <LogOut className="w-4 h-4 mr-2" />
-            Sair
-          </Button>
+          <div className="flex items-center gap-2">
+            <OrganizationSwitcher />
+            <Button onClick={handleLogout} variant="ghost" size="sm">
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -485,6 +489,16 @@ const Dashboard = () => {
                 Inadimplência
               </CardTitle>
               <CardDescription>Gestão de cobranças</CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/organization/settings")}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                Equipe
+              </CardTitle>
+              <CardDescription>Gerenciar membros e convites</CardDescription>
             </CardHeader>
           </Card>
         </div>

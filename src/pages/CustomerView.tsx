@@ -55,7 +55,6 @@ const CustomerView = () => {
       .from("customers")
       .select("*")
       .eq("id", id)
-      .eq("created_by", user.id)
       .single();
 
     if (customerData) {
