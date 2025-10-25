@@ -59,8 +59,10 @@ const Orders = () => {
   const [addPackageOpen, setAddPackageOpen] = useState(false);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (organizationId) {
+      loadData();
+    }
+  }, [organizationId]);
 
   const loadData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -69,14 +71,21 @@ const Orders = () => {
       return;
     }
 
+    if (!organizationId) {
+      setOrders([]);
+      setCustomers([]);
+      setPackages([]);
+      return;
+    }
+
     const [ordersRes, customersRes, packagesRes] = await Promise.all([
       supabase
         .from("orders")
         .select("*, customers(full_name), travel_packages(name)")
-        .eq("created_by", session.user.id)
+        .eq("organization_id", organizationId)
         .order("created_at", { ascending: false }),
-      supabase.from("customers").select("*").eq("created_by", session.user.id),
-      supabase.from("travel_packages").select("*").eq("created_by", session.user.id),
+      supabase.from("customers").select("*").eq("organization_id", organizationId),
+      supabase.from("travel_packages").select("*").eq("organization_id", organizationId),
     ]);
 
     if (ordersRes.error || customersRes.error || packagesRes.error) {

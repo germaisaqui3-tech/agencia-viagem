@@ -6,14 +6,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Calendar, Cake } from "lucide-react";
 import { toast } from "sonner";
+import { useOrganization } from "@/hooks/useOrganization";
 
 const Birthdays = () => {
   const navigate = useNavigate();
+  const { organizationId } = useOrganization();
   const [birthdays, setBirthdays] = useState<any[]>([]);
 
   useEffect(() => {
-    loadBirthdays();
-  }, []);
+    if (organizationId) {
+      loadBirthdays();
+    }
+  }, [organizationId]);
 
   const loadBirthdays = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -22,10 +26,15 @@ const Birthdays = () => {
       return;
     }
 
+    if (!organizationId) {
+      setBirthdays([]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("customers")
       .select("*")
-      .eq("created_by", session.user.id)
+      .eq("organization_id", organizationId)
       .not("birth_date", "is", null)
       .order("birth_date", { ascending: true });
 

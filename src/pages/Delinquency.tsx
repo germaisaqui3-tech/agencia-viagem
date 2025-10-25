@@ -15,6 +15,7 @@ import { FilterBar } from "@/components/filters/FilterBar";
 import { SearchInput } from "@/components/filters/SearchInput";
 import { StatusFilter } from "@/components/filters/StatusFilter";
 import { ValueRangeFilter } from "@/components/filters/ValueRangeFilter";
+import { useOrganization } from "@/hooks/useOrganization";
 
 interface OverdueInstallment {
   id: string;
@@ -42,6 +43,7 @@ const COLORS = ['hsl(var(--destructive))', 'hsl(var(--secondary))', 'hsl(var(--a
 export default function Delinquency() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { organizationId } = useOrganization();
   const [loading, setLoading] = useState(true);
   const [overdueInstallments, setOverdueInstallments] = useState<OverdueInstallment[]>([]);
   const [stats, setStats] = useState<DelinquencyStats>({
@@ -62,8 +64,10 @@ export default function Delinquency() {
   });
 
   useEffect(() => {
-    checkAuth();
-  }, []);
+    if (organizationId) {
+      checkAuth();
+    }
+  }, [organizationId]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -71,10 +75,12 @@ export default function Delinquency() {
       navigate("/auth");
       return;
     }
-    loadDelinquencyData(session.user.id);
+    if (organizationId) {
+      loadDelinquencyData(organizationId);
+    }
   };
 
-  const loadDelinquencyData = async (userId: string) => {
+  const loadDelinquencyData = async (orgId: string) => {
     try {
       setLoading(true);
 
@@ -101,7 +107,7 @@ export default function Delinquency() {
             )
           )
         `)
-        .eq("created_by", userId)
+        .eq("organization_id", orgId)
         .in("status", ["pending", "overdue"])
         .lt("due_date", new Date().toISOString().split("T")[0])
         .order("due_date", { ascending: true });

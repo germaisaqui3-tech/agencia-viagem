@@ -41,8 +41,10 @@ const Customers = () => {
   });
 
   useEffect(() => {
-    loadCustomers();
-  }, []);
+    if (organizationId) {
+      loadCustomers();
+    }
+  }, [organizationId]);
 
   const loadCustomers = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -51,10 +53,15 @@ const Customers = () => {
       return;
     }
 
+    if (!organizationId) {
+      setCustomers([]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("customers")
       .select("*")
-      .eq("created_by", session.user.id)
+      .eq("organization_id", organizationId)
       .order("created_at", { ascending: false });
 
     if (error) {

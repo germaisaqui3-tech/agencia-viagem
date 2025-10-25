@@ -11,6 +11,7 @@ import type { Session } from "@supabase/supabase-js";
 import { QuickFilterButtons } from "@/components/filters/QuickFilterButtons";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import { StatusCheckboxGroup } from "@/components/filters/StatusCheckboxGroup";
+import { useOrganization } from "@/hooks/useOrganization";
 
 interface Filters {
   quickFilter: string;
@@ -23,6 +24,7 @@ interface Filters {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { organizationId } = useOrganization();
   const [session, setSession] = useState<Session | null>(null);
   const [filters, setFilters] = useState<Filters>({
     quickFilter: "all",
@@ -48,7 +50,9 @@ const Dashboard = () => {
         return;
       }
       setSession(session);
-      loadStats(session.user.id, filters);
+      if (organizationId) {
+        loadStats(organizationId, filters);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -56,18 +60,20 @@ const Dashboard = () => {
         navigate("/auth");
       } else {
         setSession(session);
-        loadStats(session.user.id, filters);
+        if (organizationId) {
+          loadStats(organizationId, filters);
+        }
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, organizationId]);
 
   useEffect(() => {
-    if (session) {
-      loadStats(session.user.id, filters);
+    if (session && organizationId) {
+      loadStats(organizationId, filters);
     }
-  }, [filters, session]);
+  }, [filters, session, organizationId]);
 
   const getDateRange = (filters: Filters): { startDate: string; endDate: string } => {
     const now = new Date();
@@ -121,7 +127,7 @@ const Dashboard = () => {
     return { startDate, endDate };
   };
 
-  const loadStats = async (userId: string, filters: Filters) => {
+  const loadStats = async (orgId: string, filters: Filters) => {
     try {
       const { startDate, endDate } = getDateRange(filters);
 
@@ -129,13 +135,13 @@ const Dashboard = () => {
       const packagesRes = await supabase
         .from("travel_packages")
         .select("*", { count: "exact" })
-        .eq("created_by", userId);
+        .eq("organization_id", orgId);
 
       // Query para clientes com filtro de data
       let customersQuery = supabase
         .from("customers")
         .select("*", { count: "exact" })
-        .eq("created_by", userId);
+        .eq("organization_id", orgId);
       
       if (startDate) customersQuery = customersQuery.gte("created_at", startDate);
       if (endDate) customersQuery = customersQuery.lte("created_at", endDate);
@@ -144,7 +150,7 @@ const Dashboard = () => {
       let ordersQuery = supabase
         .from("orders")
         .select("total_amount, status, created_at")
-        .eq("created_by", userId);
+        .eq("organization_id", orgId);
       
       if (startDate) ordersQuery = ordersQuery.gte("created_at", startDate);
       if (endDate) ordersQuery = ordersQuery.lte("created_at", endDate);
@@ -154,7 +160,7 @@ const Dashboard = () => {
       let paymentsQuery = supabase
         .from("payments")
         .select("*")
-        .eq("created_by", userId)
+        .eq("organization_id", orgId)
         .eq("status", "pending");
       
       if (startDate) paymentsQuery = paymentsQuery.gte("created_at", startDate);
@@ -164,7 +170,7 @@ const Dashboard = () => {
       let installmentsQuery = supabase
         .from("installments")
         .select("amount, status, payment_date")
-        .eq("created_by", userId);
+        .eq("organization_id", orgId);
 
       const [packagesResult, customersResult, ordersResult, paymentsResult, installmentsResult] = await Promise.all([
         packagesRes,

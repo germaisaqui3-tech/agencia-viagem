@@ -40,8 +40,10 @@ const Payments = () => {
   });
 
   useEffect(() => {
-    loadPayments();
-  }, []);
+    if (organizationId) {
+      loadPayments();
+    }
+  }, [organizationId]);
 
   useEffect(() => {
     payments.forEach(payment => {
@@ -56,10 +58,15 @@ const Payments = () => {
       return;
     }
 
+    if (!organizationId) {
+      setPayments([]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("payments")
       .select("*, orders(order_number, customers(full_name))")
-      .eq("created_by", session.user.id)
+      .eq("organization_id", organizationId)
       .order("due_date", { ascending: true });
 
     if (error) {
@@ -73,11 +80,13 @@ const Payments = () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
+    if (!organizationId) return;
+
     const { data, error } = await supabase
       .from("installments")
       .select("*")
       .eq("payment_id", paymentId)
-      .eq("created_by", session.user.id)
+      .eq("organization_id", organizationId)
       .order("installment_number", { ascending: true });
 
     if (!error && data) {

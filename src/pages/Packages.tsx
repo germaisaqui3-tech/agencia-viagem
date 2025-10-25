@@ -29,8 +29,10 @@ const Packages = () => {
   });
 
   useEffect(() => {
-    loadPackages();
-  }, []);
+    if (organizationId) {
+      loadPackages();
+    }
+  }, [organizationId]);
 
   const loadPackages = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -39,10 +41,15 @@ const Packages = () => {
       return;
     }
 
+    if (!organizationId) {
+      setPackages([]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("travel_packages")
       .select("*")
-      .eq("created_by", session.user.id)
+      .eq("organization_id", organizationId)
       .order("created_at", { ascending: false });
 
     if (error) {
