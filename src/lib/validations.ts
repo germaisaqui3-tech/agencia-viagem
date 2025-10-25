@@ -98,6 +98,37 @@ export const orderSchema = z.object({
     .transform((val) => val || undefined),
 });
 
+// Authentication validation schemas
+export const authLoginSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email("Email inválido")
+    .max(255, "Email deve ter no máximo 255 caracteres"),
+  password: z
+    .string()
+    .min(1, "Senha é obrigatória"),
+});
+
+export const authSignupSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email("Email inválido")
+    .max(255, "Email deve ter no máximo 255 caracteres"),
+  password: z
+    .string()
+    .min(8, "Senha deve ter no mínimo 8 caracteres")
+    .max(72, "Senha deve ter no máximo 72 caracteres"),
+  fullName: z
+    .string()
+    .trim()
+    .min(2, "Nome deve ter no mínimo 2 caracteres")
+    .max(100, "Nome deve ter no máximo 100 caracteres"),
+});
+
 export type CustomerFormData = z.infer<typeof customerSchema>;
 export type PackageFormData = z.infer<typeof packageSchema>;
 export type OrderFormData = z.infer<typeof orderSchema>;
+export type AuthLoginData = z.infer<typeof authLoginSchema>;
+export type AuthSignupData = z.infer<typeof authSignupSchema>;

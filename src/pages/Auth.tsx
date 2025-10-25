@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Plane } from "lucide-react";
+import { authLoginSchema, authSignupSchema } from "@/lib/validations";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -22,20 +23,36 @@ const Auth = () => {
 
     try {
       if (isLogin) {
+        // Validate login credentials
+        const result = authLoginSchema.safeParse({ email, password });
+        if (!result.success) {
+          toast.error(result.error.errors[0].message);
+          setLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: result.data.email,
+          password: result.data.password,
         });
         if (error) throw error;
         toast.success("Login realizado com sucesso!");
         navigate("/dashboard");
       } else {
+        // Validate signup data
+        const result = authSignupSchema.safeParse({ email, password, fullName });
+        if (!result.success) {
+          toast.error(result.error.errors[0].message);
+          setLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signUp({
-          email,
-          password,
+          email: result.data.email,
+          password: result.data.password,
           options: {
             data: {
-              full_name: fullName,
+              full_name: result.data.fullName,
             },
             emailRedirectTo: `${window.location.origin}/dashboard`,
           },
@@ -45,7 +62,8 @@ const Auth = () => {
         setIsLogin(true);
       }
     } catch (error: any) {
-      toast.error(error.message || "Erro na autenticação");
+      // Use generic error messages to avoid leaking information
+      toast.error(isLogin ? "Credenciais inválidas" : "Erro ao criar conta");
     } finally {
       setLoading(false);
     }
