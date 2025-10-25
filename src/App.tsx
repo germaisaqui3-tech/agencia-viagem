@@ -8,6 +8,8 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Packages from "./pages/Packages";
 import Customers from "./pages/Customers";
+import CustomerView from "./pages/CustomerView";
+import CustomerEdit from "./pages/CustomerEdit";
 import Orders from "./pages/Orders";
 import OrderView from "./pages/OrderView";
 import OrderEdit from "./pages/OrderEdit";
@@ -30,6 +32,8 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/packages" element={<Packages />} />
           <Route path="/customers" element={<Customers />} />
+          <Route path="/customers/:id" element={<CustomerView />} />
+          <Route path="/customers/:id/edit" element={<CustomerEdit />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/orders/:id" element={<OrderView />} />
           <Route path="/orders/:id/edit" element={<OrderEdit />} />

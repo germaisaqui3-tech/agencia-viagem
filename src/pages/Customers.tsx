@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Users } from "lucide-react";
+import { ArrowLeft, Plus, Users, Eye, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { customerSchema } from "@/lib/validations";
 import { z } from "zod";
@@ -335,6 +335,7 @@ const Customers = () => {
                   <TableHead>Telefone</TableHead>
                   <TableHead>Cidade</TableHead>
                   <TableHead>Aniversário</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -349,11 +350,29 @@ const Customers = () => {
                         ? new Date(customer.birth_date).toLocaleDateString("pt-BR")
                         : "-"}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => navigate(`/customers/${customer.id}`)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => navigate(`/customers/${customer.id}/edit`)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {filteredCustomers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       {customers.length === 0 
                         ? "Nenhum cliente cadastrado ainda"
                         : "Nenhum cliente encontrado com os filtros aplicados"}
