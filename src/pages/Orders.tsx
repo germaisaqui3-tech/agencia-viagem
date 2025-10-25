@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,11 @@ import { ArrowLeft, Plus, ShoppingCart, Pencil, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { orderSchema } from "@/lib/validations";
 import { z } from "zod";
+import { FilterBar } from "@/components/filters/FilterBar";
+import { SearchInput } from "@/components/filters/SearchInput";
+import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
+import { StatusFilter } from "@/components/filters/StatusFilter";
+import { ValueRangeFilter } from "@/components/filters/ValueRangeFilter";
 
 const Orders = () => {
   const navigate = useNavigate();
@@ -37,6 +42,14 @@ const Orders = () => {
     travel_date: "",
     special_requests: "",
     status: "pending" as "pending" | "confirmed" | "completed" | "cancelled",
+  });
+  const [filters, setFilters] = useState({
+    search: "",
+    status: "all",
+    dateStart: "",
+    dateEnd: "",
+    minValue: "",
+    maxValue: "",
   });
 
   useEffect(() => {
@@ -228,6 +241,55 @@ const Orders = () => {
       completed: "Concluído",
     };
     return <Badge variant={variants[status] || "secondary"}>{labels[status] || status}</Badge>;
+  };
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const searchLower = filters.search.toLowerCase();
+      const matchesSearch =
+        !filters.search ||
+        order.order_number?.toLowerCase().includes(searchLower) ||
+        order.customers?.full_name?.toLowerCase().includes(searchLower) ||
+        order.travel_packages?.name?.toLowerCase().includes(searchLower);
+
+      const matchesStatus = filters.status === "all" || order.status === filters.status;
+
+      const orderDate = new Date(order.travel_date);
+      const matchesDateStart =
+        !filters.dateStart || orderDate >= new Date(filters.dateStart);
+      const matchesDateEnd =
+        !filters.dateEnd || orderDate <= new Date(filters.dateEnd);
+
+      const orderAmount = Number(order.total_amount);
+      const matchesMinValue =
+        !filters.minValue || orderAmount >= Number(filters.minValue);
+      const matchesMaxValue =
+        !filters.maxValue || orderAmount <= Number(filters.maxValue);
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesDateStart &&
+        matchesDateEnd &&
+        matchesMinValue &&
+        matchesMaxValue
+      );
+    });
+  }, [orders, filters]);
+
+  const activeFiltersCount = Object.entries(filters).filter(
+    ([key, value]) => value && value !== "all" && value !== ""
+  ).length;
+
+  const clearFilters = () => {
+    setFilters({
+      search: "",
+      status: "all",
+      dateStart: "",
+      dateEnd: "",
+      minValue: "",
+      maxValue: "",
+    });
   };
 
   return (
@@ -431,6 +493,43 @@ const Orders = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <FilterBar
+          onClear={clearFilters}
+          activeFiltersCount={activeFiltersCount}
+          resultsCount={filteredOrders.length}
+          totalCount={orders.length}
+        >
+          <SearchInput
+            value={filters.search}
+            onChange={(value) => setFilters({ ...filters, search: value })}
+            placeholder="Buscar por pedido, cliente ou pacote..."
+          />
+          <StatusFilter
+            value={filters.status}
+            onChange={(value) => setFilters({ ...filters, status: value })}
+            options={[
+              { value: "all", label: "Todos" },
+              { value: "pending", label: "Pendente" },
+              { value: "confirmed", label: "Confirmado" },
+              { value: "completed", label: "Concluído" },
+              { value: "cancelled", label: "Cancelado" },
+            ]}
+          />
+          <DateRangeFilter
+            label="Data da Viagem"
+            startDate={filters.dateStart}
+            endDate={filters.dateEnd}
+            onStartChange={(value) => setFilters({ ...filters, dateStart: value })}
+            onEndChange={(value) => setFilters({ ...filters, dateEnd: value })}
+          />
+          <ValueRangeFilter
+            minValue={filters.minValue}
+            maxValue={filters.maxValue}
+            onMinChange={(value) => setFilters({ ...filters, minValue: value })}
+            onMaxChange={(value) => setFilters({ ...filters, maxValue: value })}
+          />
+        </FilterBar>
+
         <Card>
           <CardHeader>
             <CardTitle>Lista de Pedidos</CardTitle>
@@ -450,7 +549,7 @@ const Orders = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orders.map((order) => (
+                {filteredOrders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="font-medium">{order.order_number}</TableCell>
                     <TableCell>{order.customers?.full_name}</TableCell>
@@ -482,10 +581,12 @@ const Orders = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-                {orders.length === 0 && (
+                {filteredOrders.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      Nenhum pedido registrado ainda
+                      {orders.length === 0
+                        ? "Nenhum pedido registrado ainda"
+                        : "Nenhum pedido encontrado com os filtros aplicados"}
                     </TableCell>
                   </TableRow>
                 )}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, DollarSign, CreditCard, Edit, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { FilterBar } from "@/components/filters/FilterBar";
+import { SearchInput } from "@/components/filters/SearchInput";
+import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
+import { StatusFilter } from "@/components/filters/StatusFilter";
+import { ValueRangeFilter } from "@/components/filters/ValueRangeFilter";
 
 const Payments = () => {
   const navigate = useNavigate();
@@ -22,6 +27,15 @@ const Payments = () => {
   const [selectedInstallment, setSelectedInstallment] = useState<any>(null);
   const [installmentCount, setInstallmentCount] = useState("1");
   const [expandedPayments, setExpandedPayments] = useState<Set<string>>(new Set());
+  const [filters, setFilters] = useState({
+    search: "",
+    status: "all",
+    dateStart: "",
+    dateEnd: "",
+    minValue: "",
+    maxValue: "",
+    paymentType: "all", // "all", "installments", "single"
+  });
 
   useEffect(() => {
     loadPayments();
@@ -168,6 +182,62 @@ const Payments = () => {
     ).length;
   };
 
+  const filteredPayments = useMemo(() => {
+    return payments.filter((payment) => {
+      const searchLower = filters.search.toLowerCase();
+      const matchesSearch =
+        !filters.search ||
+        payment.orders?.order_number?.toLowerCase().includes(searchLower) ||
+        payment.orders?.customers?.full_name?.toLowerCase().includes(searchLower);
+
+      const matchesStatus = filters.status === "all" || payment.status === filters.status;
+
+      const dueDate = new Date(payment.due_date);
+      const matchesDateStart =
+        !filters.dateStart || dueDate >= new Date(filters.dateStart);
+      const matchesDateEnd = !filters.dateEnd || dueDate <= new Date(filters.dateEnd);
+
+      const paymentAmount = Number(payment.amount);
+      const matchesMinValue =
+        !filters.minValue || paymentAmount >= Number(filters.minValue);
+      const matchesMaxValue =
+        !filters.maxValue || paymentAmount <= Number(filters.maxValue);
+
+      const paymentInstallments = installments[payment.id] || [];
+      const hasInstallments = paymentInstallments.length > 0;
+      const matchesPaymentType =
+        filters.paymentType === "all" ||
+        (filters.paymentType === "installments" && hasInstallments) ||
+        (filters.paymentType === "single" && !hasInstallments);
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesDateStart &&
+        matchesDateEnd &&
+        matchesMinValue &&
+        matchesMaxValue &&
+        matchesPaymentType
+      );
+    });
+  }, [payments, filters, installments]);
+
+  const activeFiltersCount = Object.entries(filters).filter(
+    ([key, value]) => value && value !== "all" && value !== ""
+  ).length;
+
+  const clearFilters = () => {
+    setFilters({
+      search: "",
+      status: "all",
+      dateStart: "",
+      dateEnd: "",
+      minValue: "",
+      maxValue: "",
+      paymentType: "all",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
@@ -188,6 +258,48 @@ const Payments = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <FilterBar
+          onClear={clearFilters}
+          activeFiltersCount={activeFiltersCount}
+          resultsCount={filteredPayments.length}
+          totalCount={payments.length}
+        >
+          <SearchInput
+            value={filters.search}
+            onChange={(value) => setFilters({ ...filters, search: value })}
+            placeholder="Buscar por pedido ou cliente..."
+          />
+          <StatusFilter
+            value={filters.status}
+            onChange={(value) => setFilters({ ...filters, status: value })}
+            options={[
+              { value: "all", label: "Todos" },
+              { value: "pending", label: "Pendente" },
+              { value: "partial", label: "Parcial" },
+              { value: "paid", label: "Pago" },
+              { value: "overdue", label: "Atrasado" },
+            ]}
+          />
+          <DateRangeFilter
+            label="Vencimento"
+            startDate={filters.dateStart}
+            endDate={filters.dateEnd}
+            onStartChange={(value) => setFilters({ ...filters, dateStart: value })}
+            onEndChange={(value) => setFilters({ ...filters, dateEnd: value })}
+          />
+          <StatusFilter
+            value={filters.paymentType}
+            onChange={(value) => setFilters({ ...filters, paymentType: value })}
+            options={[
+              { value: "all", label: "Todos os tipos" },
+              { value: "single", label: "À vista" },
+              { value: "installments", label: "Parcelado" },
+            ]}
+            label="Tipo de Pagamento"
+            placeholder="Todos os tipos"
+          />
+        </FilterBar>
+
         <Card>
           <CardHeader>
             <CardTitle>Pagamentos e Parcelamentos</CardTitle>
@@ -209,7 +321,7 @@ const Payments = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {payments.map((payment) => {
+                {filteredPayments.map((payment) => {
                   const paymentInstallments = installments[payment.id] || [];
                   const hasInstallments = paymentInstallments.length > 0;
                   const isExpanded = expandedPayments.has(payment.id);
@@ -420,10 +532,12 @@ const Payments = () => {
                     </>
                   );
                 })}
-                {payments.length === 0 && (
+                {filteredPayments.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                      Nenhum pagamento registrado ainda
+                      {payments.length === 0
+                        ? "Nenhum pagamento registrado ainda"
+                        : "Nenhum pagamento encontrado com os filtros aplicados"}
                     </TableCell>
                   </TableRow>
                 )}

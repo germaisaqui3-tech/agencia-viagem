@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { FilterBar } from "@/components/filters/FilterBar";
+import { SearchInput } from "@/components/filters/SearchInput";
+import { StatusFilter } from "@/components/filters/StatusFilter";
+import { ValueRangeFilter } from "@/components/filters/ValueRangeFilter";
 
 interface OverdueInstallment {
   id: string;
@@ -49,6 +53,13 @@ export default function Delinquency() {
   const [selectedInstallment, setSelectedInstallment] = useState<OverdueInstallment | null>(null);
   const [reminderMessage, setReminderMessage] = useState("");
   const [sendingReminder, setSendingReminder] = useState(false);
+  const [filters, setFilters] = useState({
+    search: "",
+    riskLevel: "all",
+    daysOverdueRange: "all",
+    minValue: "",
+    maxValue: "",
+  });
 
   useEffect(() => {
     checkAuth();
@@ -206,6 +217,60 @@ export default function Delinquency() {
     if (daysOverdue <= 7) return { label: "Baixo", variant: "secondary" as const };
     if (daysOverdue <= 30) return { label: "Médio", variant: "default" as const };
     return { label: "Alto", variant: "destructive" as const };
+  };
+
+  const filteredInstallments = useMemo(() => {
+    return overdueInstallments.filter((installment) => {
+      const searchLower = filters.search.toLowerCase();
+      const matchesSearch =
+        !filters.search ||
+        installment.customer_name?.toLowerCase().includes(searchLower) ||
+        installment.order_number?.toLowerCase().includes(searchLower);
+
+      const risk = getRiskLevel(installment.days_overdue);
+      const matchesRiskLevel =
+        filters.riskLevel === "all" ||
+        risk.label.toLowerCase() === filters.riskLevel.toLowerCase();
+
+      let matchesDaysRange = true;
+      if (filters.daysOverdueRange !== "all") {
+        const days = installment.days_overdue;
+        switch (filters.daysOverdueRange) {
+          case "0-7":
+            matchesDaysRange = days <= 7;
+            break;
+          case "8-30":
+            matchesDaysRange = days > 7 && days <= 30;
+            break;
+          case "31-60":
+            matchesDaysRange = days > 30 && days <= 60;
+            break;
+          case "60+":
+            matchesDaysRange = days > 60;
+            break;
+        }
+      }
+
+      const amount = Number(installment.amount);
+      const matchesMinValue = !filters.minValue || amount >= Number(filters.minValue);
+      const matchesMaxValue = !filters.maxValue || amount <= Number(filters.maxValue);
+
+      return matchesSearch && matchesRiskLevel && matchesDaysRange && matchesMinValue && matchesMaxValue;
+    });
+  }, [overdueInstallments, filters]);
+
+  const activeFiltersCount = Object.entries(filters).filter(
+    ([key, value]) => value && value !== "all" && value !== ""
+  ).length;
+
+  const clearFilters = () => {
+    setFilters({
+      search: "",
+      riskLevel: "all",
+      daysOverdueRange: "all",
+      minValue: "",
+      maxValue: "",
+    });
   };
 
   // Chart data
@@ -381,6 +446,51 @@ export default function Delinquency() {
             <CardDescription>Listagem completa de todas as parcelas vencidas</CardDescription>
           </CardHeader>
           <CardContent>
+            <FilterBar
+              onClear={clearFilters}
+              activeFiltersCount={activeFiltersCount}
+              resultsCount={filteredInstallments.length}
+              totalCount={overdueInstallments.length}
+            >
+              <SearchInput
+                value={filters.search}
+                onChange={(value) => setFilters({ ...filters, search: value })}
+                placeholder="Buscar por cliente ou pedido..."
+              />
+              <StatusFilter
+                value={filters.riskLevel}
+                onChange={(value) => setFilters({ ...filters, riskLevel: value })}
+                options={[
+                  { value: "all", label: "Todos os riscos" },
+                  { value: "baixo", label: "Risco Baixo" },
+                  { value: "médio", label: "Risco Médio" },
+                  { value: "alto", label: "Risco Alto" },
+                ]}
+                label="Nível de Risco"
+                placeholder="Todos os riscos"
+              />
+              <StatusFilter
+                value={filters.daysOverdueRange}
+                onChange={(value) => setFilters({ ...filters, daysOverdueRange: value })}
+                options={[
+                  { value: "all", label: "Todos os períodos" },
+                  { value: "0-7", label: "0-7 dias" },
+                  { value: "8-30", label: "8-30 dias" },
+                  { value: "31-60", label: "31-60 dias" },
+                  { value: "60+", label: "60+ dias" },
+                ]}
+                label="Dias de Atraso"
+                placeholder="Todos os períodos"
+              />
+              <ValueRangeFilter
+                label="Valor Devido"
+                minValue={filters.minValue}
+                maxValue={filters.maxValue}
+                onMinChange={(value) => setFilters({ ...filters, minValue: value })}
+                onMaxChange={(value) => setFilters({ ...filters, maxValue: value })}
+              />
+            </FilterBar>
+
             {overdueInstallments.length === 0 ? (
               <div className="text-center py-12">
                 <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -403,7 +513,7 @@ export default function Delinquency() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {overdueInstallments.map((installment) => {
+                    {filteredInstallments.map((installment) => {
                       const risk = getRiskLevel(installment.days_overdue);
                       return (
                         <TableRow key={installment.id}>
@@ -483,6 +593,13 @@ export default function Delinquency() {
                         </TableRow>
                       );
                     })}
+                    {filteredInstallments.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                          Nenhuma parcela encontrada com os filtros aplicados
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>

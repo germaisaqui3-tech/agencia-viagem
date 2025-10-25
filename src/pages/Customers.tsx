@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,10 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Plus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { customerSchema } from "@/lib/validations";
 import { z } from "zod";
+import { FilterBar } from "@/components/filters/FilterBar";
+import { SearchInput } from "@/components/filters/SearchInput";
+import { MonthFilter } from "@/components/filters/MonthFilter";
 
 const Customers = () => {
   const navigate = useNavigate();
@@ -27,6 +31,11 @@ const Customers = () => {
     city: "",
     state: "",
     zip_code: "",
+  });
+  const [filters, setFilters] = useState({
+    search: "",
+    birthMonth: "all",
+    city: "all",
   });
 
   useEffect(() => {
@@ -121,6 +130,44 @@ const Customers = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const filteredCustomers = useMemo(() => {
+    return customers.filter((customer) => {
+      const searchLower = filters.search.toLowerCase();
+      const matchesSearch =
+        !filters.search ||
+        customer.full_name?.toLowerCase().includes(searchLower) ||
+        customer.email?.toLowerCase().includes(searchLower) ||
+        customer.phone?.toLowerCase().includes(searchLower) ||
+        customer.city?.toLowerCase().includes(searchLower);
+
+      const matchesBirthMonth =
+        filters.birthMonth === "all" ||
+        (customer.birth_date &&
+          new Date(customer.birth_date).getMonth() + 1 === parseInt(filters.birthMonth));
+
+      const matchesCity = filters.city === "all" || customer.city === filters.city;
+
+      return matchesSearch && matchesBirthMonth && matchesCity;
+    });
+  }, [customers, filters]);
+
+  const cities = useMemo(() => {
+    const uniqueCities = [...new Set(customers.map((c) => c.city).filter(Boolean))];
+    return uniqueCities.sort();
+  }, [customers]);
+
+  const activeFiltersCount = Object.entries(filters).filter(
+    ([key, value]) => value && value !== "all" && value !== ""
+  ).length;
+
+  const clearFilters = () => {
+    setFilters({
+      search: "",
+      birthMonth: "all",
+      city: "all",
+    });
   };
 
   return (
@@ -241,6 +288,39 @@ const Customers = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <FilterBar
+          onClear={clearFilters}
+          activeFiltersCount={activeFiltersCount}
+          resultsCount={filteredCustomers.length}
+          totalCount={customers.length}
+        >
+          <SearchInput
+            value={filters.search}
+            onChange={(value) => setFilters({ ...filters, search: value })}
+            placeholder="Buscar por nome, email, telefone ou cidade..."
+          />
+          <MonthFilter
+            value={filters.birthMonth}
+            onChange={(value) => setFilters({ ...filters, birthMonth: value })}
+          />
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Cidade</Label>
+            <Select value={filters.city} onValueChange={(value) => setFilters({ ...filters, city: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todas as cidades" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as cidades</SelectItem>
+                {cities.map((city) => (
+                  <SelectItem key={city} value={city}>
+                    {city}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </FilterBar>
+
         <Card>
           <CardHeader>
             <CardTitle>Lista de Clientes</CardTitle>
@@ -258,7 +338,7 @@ const Customers = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {customers.map((customer) => (
+                {filteredCustomers.map((customer) => (
                   <TableRow key={customer.id}>
                     <TableCell className="font-medium">{customer.full_name}</TableCell>
                     <TableCell>{customer.email}</TableCell>
@@ -271,10 +351,12 @@ const Customers = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-                {customers.length === 0 && (
+                {filteredCustomers.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      Nenhum cliente cadastrado ainda
+                      {customers.length === 0 
+                        ? "Nenhum cliente cadastrado ainda"
+                        : "Nenhum cliente encontrado com os filtros aplicados"}
                     </TableCell>
                   </TableRow>
                 )}
