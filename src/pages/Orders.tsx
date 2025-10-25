@@ -296,14 +296,14 @@ const Orders = () => {
     });
   };
 
-  const handleCustomerCreated = (newCustomerId: string) => {
-    loadData();
+  const handleCustomerCreated = async (newCustomerId: string) => {
+    await loadData();
     setFormData({ ...formData, customer_id: newCustomerId });
     setAddCustomerOpen(false);
   };
 
-  const handlePackageCreated = (newPackageId: string) => {
-    loadData();
+  const handlePackageCreated = async (newPackageId: string) => {
+    await loadData();
     setFormData({ ...formData, package_id: newPackageId });
     setAddPackageOpen(false);
   };
