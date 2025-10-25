@@ -11,6 +11,7 @@ import Customers from "./pages/Customers";
 import Orders from "./pages/Orders";
 import Payments from "./pages/Payments";
 import Birthdays from "./pages/Birthdays";
+import Delinquency from "./pages/Delinquency";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/orders" element={<Orders />} />
           <Route path="/payments" element={<Payments />} />
           <Route path="/birthdays" element={<Birthdays />} />
+          <Route path="/delinquency" element={<Delinquency />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

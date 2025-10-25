@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plane, Users, Package, ShoppingCart, DollarSign, Calendar, LogOut } from "lucide-react";
+import { Plane, Users, Package, ShoppingCart, DollarSign, Calendar, LogOut, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import type { Session } from "@supabase/supabase-js";
 
@@ -214,6 +214,16 @@ const Dashboard = () => {
                 Aniversários
               </CardTitle>
               <CardDescription>Notificações de clientes</CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/delinquency")}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+                Inadimplência
+              </CardTitle>
+              <CardDescription>Gestão de cobranças</CardDescription>
             </CardHeader>
           </Card>
         </div>
