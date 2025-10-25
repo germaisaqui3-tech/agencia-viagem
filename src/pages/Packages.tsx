@@ -11,9 +11,11 @@ import { ArrowLeft, Plus, Plane } from "lucide-react";
 import { toast } from "sonner";
 import { packageSchema } from "@/lib/validations";
 import { z } from "zod";
+import { useOrganization } from "@/hooks/useOrganization";
 
 const Packages = () => {
   const navigate = useNavigate();
+  const { organizationId, loading: orgLoading } = useOrganization();
   const [packages, setPackages] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -61,6 +63,12 @@ const Packages = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
+      if (!organizationId) {
+        toast.error("Organização não encontrada");
+        setLoading(false);
+        return;
+      }
+
       // Create insert object with required fields typed correctly
       const insertData: {
         name: string;
@@ -69,6 +77,7 @@ const Packages = () => {
         price: number;
         available_spots: number;
         description?: string;
+        organization_id: string;
         created_by: string;
       } = {
         name: validatedData.name,
@@ -77,6 +86,7 @@ const Packages = () => {
         price: parseFloat(validatedData.price),
         available_spots: parseInt(validatedData.available_spots),
         ...(validatedData.description && { description: validatedData.description }),
+        organization_id: organizationId,
         created_by: session.user.id,
       };
 
@@ -202,7 +212,7 @@ const Packages = () => {
                     />
                   </div>
                 </div>
-                <Button type="submit" className="w-full" disabled={loading} variant="gradient">
+                <Button type="submit" className="w-full" disabled={loading || orgLoading} variant="gradient">
                   {loading ? "Criando..." : "Criar Pacote"}
                 </Button>
               </form>

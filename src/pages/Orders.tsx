@@ -20,9 +20,11 @@ import { StatusFilter } from "@/components/filters/StatusFilter";
 import { ValueRangeFilter } from "@/components/filters/ValueRangeFilter";
 import { QuickAddCustomer } from "@/components/orders/QuickAddCustomer";
 import { QuickAddPackage } from "@/components/orders/QuickAddPackage";
+import { useOrganization } from "@/hooks/useOrganization";
 
 const Orders = () => {
   const navigate = useNavigate();
+  const { organizationId, loading: orgLoading } = useOrganization();
   const [orders, setOrders] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [packages, setPackages] = useState<any[]>([]);
@@ -105,6 +107,12 @@ const Orders = () => {
         return;
       }
 
+      if (!organizationId) {
+        toast.error("Organização não encontrada");
+        setLoading(false);
+        return;
+      }
+
       const totalAmount = Number(selectedPackage.price) * parseInt(validatedData.number_of_travelers);
       const orderNumber = `ORD-${Date.now()}`;
 
@@ -119,6 +127,7 @@ const Orders = () => {
             total_amount: totalAmount,
             travel_date: validatedData.travel_date,
             special_requests: validatedData.special_requests,
+            organization_id: organizationId,
             created_by: session.user.id,
           },
         ])
@@ -138,6 +147,7 @@ const Orders = () => {
           amount: totalAmount,
           due_date: validatedData.travel_date,
           status: "pending",
+          organization_id: organizationId,
           created_by: session.user.id,
         },
       ]);

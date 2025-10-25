@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { customerSchema } from "@/lib/validations";
 import { z } from "zod";
+import { useOrganization } from "@/hooks/useOrganization";
 
 interface QuickAddCustomerProps {
   open: boolean;
@@ -16,6 +17,7 @@ interface QuickAddCustomerProps {
 }
 
 export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: QuickAddCustomerProps) => {
+  const { organizationId, loading: orgLoading } = useOrganization();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: "",
@@ -39,6 +41,12 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
         return;
       }
 
+      if (!organizationId) {
+        toast.error("Organização não encontrada");
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("customers")
         .insert([
@@ -48,6 +56,7 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
             phone: validatedData.phone,
             cpf: validatedData.cpf,
             birth_date: validatedData.birth_date,
+            organization_id: organizationId,
             created_by: session.user.id,
           },
         ])
@@ -152,7 +161,7 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading} variant="gradient">
+            <Button type="submit" disabled={loading || orgLoading} variant="gradient">
               {loading ? "Adicionando..." : "Adicionar Cliente"}
             </Button>
           </div>

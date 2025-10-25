@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Edit, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useOrganization } from "@/hooks/useOrganization";
 
 interface OrderDetails {
   id: string;
@@ -53,6 +54,7 @@ const OrderView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { organizationId } = useOrganization();
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [payment, setPayment] = useState<Payment | null>(null);
   const [installments, setInstallments] = useState<Installment[]>([]);
@@ -117,6 +119,15 @@ const OrderView = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    if (!organizationId) {
+      toast({
+        title: "Erro",
+        description: "Organização não encontrada",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const amountPerInstallment = payment.amount / installmentCount;
     const baseDate = new Date(payment.due_date);
 
@@ -131,6 +142,7 @@ const OrderView = () => {
         amount: amountPerInstallment,
         due_date: dueDate.toISOString().split("T")[0],
         status: "pending" as "pending" | "paid" | "overdue" | "partial",
+        organization_id: organizationId,
         created_by: user.id,
       };
     });

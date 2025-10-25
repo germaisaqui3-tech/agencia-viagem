@@ -16,9 +16,11 @@ import { SearchInput } from "@/components/filters/SearchInput";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import { StatusFilter } from "@/components/filters/StatusFilter";
 import { ValueRangeFilter } from "@/components/filters/ValueRangeFilter";
+import { useOrganization } from "@/hooks/useOrganization";
 
 const Payments = () => {
   const navigate = useNavigate();
+  const { organizationId } = useOrganization();
   const [payments, setPayments] = useState<any[]>([]);
   const [installments, setInstallments] = useState<Record<string, any[]>>({});
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
@@ -92,6 +94,11 @@ const Payments = () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
+    if (!organizationId) {
+      toast.error("Organização não encontrada");
+      return;
+    }
+
     const installmentsToCreate = Array.from({ length: count }, (_, i) => ({
       payment_id: selectedPayment.id,
       installment_number: i + 1,
@@ -99,6 +106,7 @@ const Payments = () => {
       amount: installmentAmount,
       due_date: new Date(new Date(selectedPayment.due_date).setMonth(new Date(selectedPayment.due_date).getMonth() + i)).toISOString().split('T')[0],
       status: "pending" as const,
+      organization_id: organizationId,
       created_by: session.user.id
     }));
 

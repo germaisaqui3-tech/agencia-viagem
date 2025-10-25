@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { packageSchema } from "@/lib/validations";
 import { z } from "zod";
 import { Textarea } from "@/components/ui/textarea";
+import { useOrganization } from "@/hooks/useOrganization";
 
 interface QuickAddPackageProps {
   open: boolean;
@@ -17,6 +18,7 @@ interface QuickAddPackageProps {
 }
 
 export const QuickAddPackage = ({ open, onOpenChange, onPackageCreated }: QuickAddPackageProps) => {
+  const { organizationId, loading: orgLoading } = useOrganization();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -41,6 +43,12 @@ export const QuickAddPackage = ({ open, onOpenChange, onPackageCreated }: QuickA
         return;
       }
 
+      if (!organizationId) {
+        toast.error("Organização não encontrada");
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("travel_packages")
         .insert([
@@ -51,6 +59,7 @@ export const QuickAddPackage = ({ open, onOpenChange, onPackageCreated }: QuickA
             price: parseFloat(validatedData.price),
             available_spots: parseInt(validatedData.available_spots),
             description: validatedData.description,
+            organization_id: organizationId,
             created_by: session.user.id,
           },
         ])
@@ -174,7 +183,7 @@ export const QuickAddPackage = ({ open, onOpenChange, onPackageCreated }: QuickA
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading} variant="gradient">
+            <Button type="submit" disabled={loading || orgLoading} variant="gradient">
               {loading ? "Adicionando..." : "Adicionar Pacote"}
             </Button>
           </div>

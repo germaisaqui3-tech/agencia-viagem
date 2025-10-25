@@ -15,9 +15,11 @@ import { z } from "zod";
 import { FilterBar } from "@/components/filters/FilterBar";
 import { SearchInput } from "@/components/filters/SearchInput";
 import { MonthFilter } from "@/components/filters/MonthFilter";
+import { useOrganization } from "@/hooks/useOrganization";
 
 const Customers = () => {
   const navigate = useNavigate();
+  const { organizationId, loading: orgLoading } = useOrganization();
   const [customers, setCustomers] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -73,6 +75,12 @@ const Customers = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
+      if (!organizationId) {
+        toast.error("Organização não encontrada");
+        setLoading(false);
+        return;
+      }
+
       // Create insert object with required fields typed correctly
       const insertData: {
         full_name: string;
@@ -84,6 +92,7 @@ const Customers = () => {
         city?: string;
         state?: string;
         zip_code?: string;
+        organization_id: string;
         created_by: string;
       } = {
         full_name: validatedData.full_name,
@@ -95,6 +104,7 @@ const Customers = () => {
         ...(validatedData.city && { city: validatedData.city }),
         ...(validatedData.state && { state: validatedData.state }),
         ...(validatedData.zip_code && { zip_code: validatedData.zip_code }),
+        organization_id: organizationId,
         created_by: session.user.id,
       };
 
@@ -278,7 +288,7 @@ const Customers = () => {
                     />
                   </div>
                 </div>
-                <Button type="submit" className="w-full" disabled={loading} variant="gradient">
+                <Button type="submit" className="w-full" disabled={loading || orgLoading} variant="gradient">
                   {loading ? "Cadastrando..." : "Cadastrar Cliente"}
                 </Button>
               </form>
