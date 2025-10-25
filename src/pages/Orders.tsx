@@ -81,26 +81,47 @@ const Orders = () => {
       const totalAmount = Number(selectedPackage.price) * parseInt(validatedData.number_of_travelers);
       const orderNumber = `ORD-${Date.now()}`;
 
-      const { error } = await supabase.from("orders").insert([
-        {
-          order_number: orderNumber,
-          customer_id: validatedData.customer_id,
-          package_id: validatedData.package_id,
-          number_of_travelers: parseInt(validatedData.number_of_travelers),
-          total_amount: totalAmount,
-          travel_date: validatedData.travel_date,
-          special_requests: validatedData.special_requests,
-          created_by: session.user.id,
-        },
-      ]);
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .insert([
+          {
+            order_number: orderNumber,
+            customer_id: validatedData.customer_id,
+            package_id: validatedData.package_id,
+            number_of_travelers: parseInt(validatedData.number_of_travelers),
+            total_amount: totalAmount,
+            travel_date: validatedData.travel_date,
+            special_requests: validatedData.special_requests,
+            created_by: session.user.id,
+          },
+        ])
+        .select()
+        .single();
 
-      if (error) {
+      if (orderError || !orderData) {
         toast.error("Erro ao criar pedido");
         setLoading(false);
         return;
       }
 
-      toast.success("Pedido criado com sucesso!");
+      // Criar pagamento automaticamente
+      const { error: paymentError } = await supabase.from("payments").insert([
+        {
+          order_id: orderData.id,
+          amount: totalAmount,
+          due_date: validatedData.travel_date,
+          status: "pending",
+          created_by: session.user.id,
+        },
+      ]);
+
+      if (paymentError) {
+        toast.error("Pedido criado, mas erro ao criar pagamento");
+        setLoading(false);
+        return;
+      }
+
+      toast.success("Pedido e pagamento criados com sucesso!");
       setOpen(false);
       setFormData({
         customer_id: "",
