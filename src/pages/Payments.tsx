@@ -17,6 +17,7 @@ import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import { StatusFilter } from "@/components/filters/StatusFilter";
 import { ValueRangeFilter } from "@/components/filters/ValueRangeFilter";
 import { useOrganization } from "@/hooks/useOrganization";
+import { PAYMENT_METHODS } from "@/lib/constants";
 
 const Payments = () => {
   const navigate = useNavigate();
@@ -520,11 +521,18 @@ const Payments = () => {
                                   </div>
                                   <div>
                                     <Label htmlFor="payment_method">Método de Pagamento</Label>
-                                    <Input
-                                      name="payment_method"
-                                      placeholder="Ex: Cartão, PIX, Dinheiro"
-                                      defaultValue={installment.payment_method || ""}
-                                    />
+                                    <Select name="payment_method" defaultValue={installment.payment_method || ""}>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Selecione o método" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {PAYMENT_METHODS.map((method) => (
+                                          <SelectItem key={method.value} value={method.value}>
+                                            {method.label}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                                   </div>
                                   <div>
                                     <Label htmlFor="notes">Observações</Label>

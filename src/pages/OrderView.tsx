@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { OrderDeleteDialog } from "@/components/orders/OrderDeleteDialog";
 import { useOrganization } from "@/hooks/useOrganization";
+import { PAYMENT_METHODS } from "@/lib/constants";
 
 interface OrderDetails {
   id: string;
@@ -447,12 +448,23 @@ const OrderView = () => {
               </div>
               <div>
                 <Label>Método de Pagamento</Label>
-                <Input
+                <Select
                   value={selectedInstallment.payment_method || ""}
-                  onChange={(e) =>
-                    setSelectedInstallment({ ...selectedInstallment, payment_method: e.target.value })
+                  onValueChange={(value) =>
+                    setSelectedInstallment({ ...selectedInstallment, payment_method: value })
                   }
-                />
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o método" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_METHODS.map((method) => (
+                      <SelectItem key={method.value} value={method.value}>
+                        {method.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>Notas</Label>
