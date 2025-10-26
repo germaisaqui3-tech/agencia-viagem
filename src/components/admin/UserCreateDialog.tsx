@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { userCreateSchema, type UserCreateData } from "@/lib/validations";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 interface UserCreateDialogProps {
   onSuccess: () => void;
@@ -194,7 +195,7 @@ export function UserCreateDialog({ onSuccess }: UserCreateDialogProps) {
                 <FormItem>
                   <FormLabel>Telefone</FormLabel>
                   <FormControl>
-                    <Input placeholder="(11) 98765-4321" {...field} />
+                    <PhoneInput {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

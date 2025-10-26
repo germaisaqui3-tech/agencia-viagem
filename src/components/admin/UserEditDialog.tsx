@@ -33,6 +33,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { userUpdateSchema, type UserUpdateData } from "@/lib/validations";
 
 type AppRole = 'admin' | 'agent' | 'user';
@@ -314,7 +315,7 @@ export function UserEditDialog({ user, onSuccess }: UserEditDialogProps) {
                 <FormItem>
                   <FormLabel>Telefone</FormLabel>
                   <FormControl>
-                    <Input placeholder="(11) 98765-4321" {...field} />
+                    <PhoneInput {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

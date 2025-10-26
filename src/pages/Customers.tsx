@@ -16,6 +16,9 @@ import { FilterBar } from "@/components/filters/FilterBar";
 import { SearchInput } from "@/components/filters/SearchInput";
 import { MonthFilter } from "@/components/filters/MonthFilter";
 import { useOrganization } from "@/hooks/useOrganization";
+import { CpfInput } from "@/components/ui/cpf-input";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { cleanCpf, cleanPhone } from "@/lib/utils";
 
 const Customers = () => {
   const navigate = useNavigate();
@@ -104,8 +107,8 @@ const Customers = () => {
       } = {
         full_name: validatedData.full_name,
         email: validatedData.email,
-        phone: validatedData.phone,
-        ...(validatedData.cpf && { cpf: validatedData.cpf }),
+        phone: cleanPhone(validatedData.phone),
+        ...(validatedData.cpf && { cpf: cleanCpf(validatedData.cpf) }),
         ...(validatedData.birth_date && { birth_date: validatedData.birth_date }),
         ...(validatedData.address && { address: validatedData.address }),
         ...(validatedData.city && { city: validatedData.city }),
@@ -238,7 +241,7 @@ const Customers = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Telefone</Label>
-                    <Input
+                    <PhoneInput
                       id="phone"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -247,7 +250,7 @@ const Customers = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="cpf">CPF</Label>
-                    <Input
+                    <CpfInput
                       id="cpf"
                       value={formData.cpf}
                       onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}

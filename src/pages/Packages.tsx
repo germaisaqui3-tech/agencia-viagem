@@ -15,6 +15,8 @@ import { z } from "zod";
 import { useOrganization } from "@/hooks/useOrganization";
 import PackageEditDialog from "@/components/packages/PackageEditDialog";
 import PackageDeleteDialog from "@/components/packages/PackageDeleteDialog";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import { cleanCurrency } from "@/lib/utils";
 
 const Packages = () => {
   const navigate = useNavigate();
@@ -96,7 +98,7 @@ const Packages = () => {
         name: validatedData.name,
         destination: validatedData.destination,
         duration_days: parseInt(validatedData.duration_days),
-        price: parseFloat(validatedData.price),
+        price: cleanCurrency(validatedData.price),
         available_spots: parseInt(validatedData.available_spots),
         ...(validatedData.description && { description: validatedData.description }),
         organization_id: organizationId,
@@ -214,11 +216,9 @@ const Packages = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="price">Preço (R$)</Label>
-                    <Input
+                    <Label htmlFor="price">Preço</Label>
+                    <CurrencyInput
                       id="price"
-                      type="number"
-                      step="0.01"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                       required

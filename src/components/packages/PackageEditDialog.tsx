@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { packageSchema } from "@/lib/validations";
 import { z } from "zod";
 import { useOrganization } from "@/hooks/useOrganization";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import { cleanCurrency, formatCurrency } from "@/lib/utils";
 
 interface PackageEditDialogProps {
   package: any;
@@ -36,7 +38,7 @@ const PackageEditDialog = ({ package: pkg, open, onOpenChange, onPackageUpdated 
         description: pkg.description || "",
         destination: pkg.destination || "",
         duration_days: pkg.duration_days?.toString() || "",
-        price: pkg.price?.toString() || "",
+        price: pkg.price ? formatCurrency(pkg.price) : "",
         available_spots: pkg.available_spots?.toString() || "",
       });
     }
@@ -64,7 +66,7 @@ const PackageEditDialog = ({ package: pkg, open, onOpenChange, onPackageUpdated 
           name: validatedData.name,
           destination: validatedData.destination,
           duration_days: parseInt(validatedData.duration_days),
-          price: parseFloat(validatedData.price),
+          price: cleanCurrency(validatedData.price),
           available_spots: parseInt(validatedData.available_spots),
           description: validatedData.description || null,
         })
@@ -145,11 +147,9 @@ const PackageEditDialog = ({ package: pkg, open, onOpenChange, onPackageUpdated 
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-price">Preço (R$)</Label>
-              <Input
+              <Label htmlFor="edit-price">Preço</Label>
+              <CurrencyInput
                 id="edit-price"
-                type="number"
-                step="0.01"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                 disabled={loading}

@@ -9,6 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { quickAddCustomerSchema } from "@/lib/validations";
 import { z } from "zod";
 import { useOrganization } from "@/hooks/useOrganization";
+import { CpfInput } from "@/components/ui/cpf-input";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { cleanCpf, cleanPhone } from "@/lib/utils";
 
 interface QuickAddCustomerProps {
   open: boolean;
@@ -53,8 +56,8 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
           {
             full_name: validatedData.full_name,
             email: validatedData.email,
-            phone: validatedData.phone,
-            cpf: validatedData.cpf || null,
+            phone: cleanPhone(validatedData.phone),
+            cpf: validatedData.cpf ? cleanCpf(validatedData.cpf) : null,
             birth_date: validatedData.birth_date || null,
             organization_id: organizationId,
             created_by: session.user.id,
@@ -128,11 +131,10 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
             </div>
             <div className="space-y-2">
               <Label htmlFor="quick_phone">Telefone *</Label>
-              <Input
+              <PhoneInput
                 id="quick_phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="(00) 00000-0000"
                 required
               />
             </div>
@@ -140,11 +142,10 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="quick_cpf">CPF (opcional)</Label>
-              <Input
+              <CpfInput
                 id="quick_cpf"
                 value={formData.cpf}
                 onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                placeholder="000.000.000-00"
               />
             </div>
             <div className="space-y-2">
