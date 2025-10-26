@@ -54,7 +54,21 @@ const Orders = () => {
 
     const { data: ordersData, error: ordersError } = await supabase
       .from("orders")
-      .select("*, customers(full_name), travel_packages(name)")
+      .select(`
+        *,
+        customers(full_name),
+        travel_packages(name),
+        payments(
+          id,
+          status,
+          amount,
+          installments:installments(
+            id,
+            status,
+            amount
+          )
+        )
+      `)
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: false });
 
@@ -100,6 +114,79 @@ const Orders = () => {
       completed: "Concluído",
     };
     return <Badge variant={variants[status] || "secondary"}>{labels[status] || status}</Badge>;
+  };
+
+  const getPaymentStatusBadge = (order: any) => {
+    const payment = order.payments?.[0];
+    
+    if (!payment) {
+      return (
+        <Badge variant="outline" className="bg-gray-100 text-gray-600">
+          Sem Pagamento
+        </Badge>
+      );
+    }
+
+    const installments = payment.installments || [];
+    const totalInstallments = installments.length;
+    const paidInstallments = installments.filter((i: any) => i.status === 'paid').length;
+    const overdueInstallments = installments.filter((i: any) => i.status === 'overdue').length;
+
+    if (payment.status === 'paid') {
+      return (
+        <div className="flex flex-col gap-1">
+          <Badge className="bg-green-500 hover:bg-green-600">
+            ✓ Pago
+          </Badge>
+          {totalInstallments > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {paidInstallments}/{totalInstallments} parcelas
+            </span>
+          )}
+        </div>
+      );
+    }
+
+    if (payment.status === 'overdue' || overdueInstallments > 0) {
+      return (
+        <div className="flex flex-col gap-1">
+          <Badge variant="destructive">
+            ⚠ Atrasado
+          </Badge>
+          {totalInstallments > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {overdueInstallments} em atraso
+            </span>
+          )}
+        </div>
+      );
+    }
+
+    if (payment.status === 'partial') {
+      return (
+        <div className="flex flex-col gap-1">
+          <Badge className="bg-blue-500 hover:bg-blue-600">
+            ⚡ Parcial
+          </Badge>
+          <span className="text-xs text-muted-foreground">
+            {paidInstallments}/{totalInstallments} pagas
+          </span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col gap-1">
+        <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+          ⏳ Pendente
+        </Badge>
+        {totalInstallments > 0 && (
+          <span className="text-xs text-muted-foreground">
+            0/{totalInstallments} pagas
+          </span>
+        )}
+      </div>
+    );
   };
 
   const filteredOrders = useMemo(() => {
@@ -227,6 +314,7 @@ const Orders = () => {
                   <TableHead>Data Viagem</TableHead>
                   <TableHead>Valor Total</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Pagamento</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -243,6 +331,7 @@ const Orders = () => {
                       R$ {Number(order.total_amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
+                    <TableCell>{getPaymentStatusBadge(order)}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -284,7 +373,7 @@ const Orders = () => {
                 ))}
                 {filteredOrders.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                       {orders.length === 0
                         ? "Nenhum pedido registrado ainda"
                         : "Nenhum pedido encontrado com os filtros aplicados"}
