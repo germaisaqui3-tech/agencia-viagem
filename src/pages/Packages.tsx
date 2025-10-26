@@ -7,11 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Plane } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ArrowLeft, Plus, Plane, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { packageSchema } from "@/lib/validations";
 import { z } from "zod";
 import { useOrganization } from "@/hooks/useOrganization";
+import PackageEditDialog from "@/components/packages/PackageEditDialog";
+import PackageDeleteDialog from "@/components/packages/PackageDeleteDialog";
 
 const Packages = () => {
   const navigate = useNavigate();
@@ -19,6 +22,9 @@ const Packages = () => {
   const [packages, setPackages] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState<any | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -128,6 +134,16 @@ const Packages = () => {
     }
   };
 
+  const handleEditClick = (pkg: any) => {
+    setSelectedPackage(pkg);
+    setEditDialogOpen(true);
+  };
+
+  const handleDeleteClick = (pkg: any) => {
+    setSelectedPackage(pkg);
+    setDeleteDialogOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
@@ -232,9 +248,33 @@ const Packages = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {packages.map((pkg) => (
             <Card key={pkg.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
+              <CardHeader className="relative">
                 <CardTitle>{pkg.name}</CardTitle>
                 <CardDescription>{pkg.destination}</CardDescription>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute top-4 right-4 h-8 w-8"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleEditClick(pkg)}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => handleDeleteClick(pkg)}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Excluir
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </CardHeader>
               <CardContent className="space-y-2">
                 <p className="text-sm text-muted-foreground line-clamp-2">{pkg.description}</p>
@@ -258,6 +298,23 @@ const Packages = () => {
             </div>
           )}
         </div>
+
+        {selectedPackage && (
+          <>
+            <PackageEditDialog
+              package={selectedPackage}
+              open={editDialogOpen}
+              onOpenChange={setEditDialogOpen}
+              onPackageUpdated={loadPackages}
+            />
+            <PackageDeleteDialog
+              package={selectedPackage}
+              open={deleteDialogOpen}
+              onOpenChange={setDeleteDialogOpen}
+              onPackageDeleted={loadPackages}
+            />
+          </>
+        )}
       </main>
     </div>
   );
