@@ -13,6 +13,7 @@ import Customers from "./pages/Customers";
 import CustomerView from "./pages/CustomerView";
 import CustomerEdit from "./pages/CustomerEdit";
 import Orders from "./pages/Orders";
+import OrderCreate from "./pages/OrderCreate";
 import OrderView from "./pages/OrderView";
 import OrderEdit from "./pages/OrderEdit";
 import Payments from "./pages/Payments";
@@ -43,6 +44,7 @@ const App = () => (
           <Route path="/customers/:id" element={<MainLayout><CustomerView /></MainLayout>} />
           <Route path="/customers/:id/edit" element={<MainLayout><CustomerEdit /></MainLayout>} />
           <Route path="/orders" element={<MainLayout><Orders /></MainLayout>} />
+          <Route path="/orders/create" element={<MainLayout><OrderCreate /></MainLayout>} />
           <Route path="/orders/:id" element={<MainLayout><OrderView /></MainLayout>} />
           <Route path="/orders/:id/edit" element={<MainLayout><OrderEdit /></MainLayout>} />
           <Route path="/payments" element={<MainLayout><Payments /></MainLayout>} />

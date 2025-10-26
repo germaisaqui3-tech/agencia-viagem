@@ -3,23 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Plus, ShoppingCart, Edit, Eye, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { orderSchema } from "@/lib/validations";
-import { z } from "zod";
 import { FilterBar } from "@/components/filters/FilterBar";
 import { SearchInput } from "@/components/filters/SearchInput";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import { StatusFilter } from "@/components/filters/StatusFilter";
 import { ValueRangeFilter } from "@/components/filters/ValueRangeFilter";
-import { QuickAddCustomer } from "@/components/orders/QuickAddCustomer";
-import { QuickAddPackage } from "@/components/orders/QuickAddPackage";
 import { OrderDeleteDialog } from "@/components/orders/OrderDeleteDialog";
 import {
   DropdownMenu,
@@ -33,17 +25,6 @@ const Orders = () => {
   const navigate = useNavigate();
   const { organizationId, loading: orgLoading } = useOrganization();
   const [orders, setOrders] = useState<any[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [packages, setPackages] = useState<any[]>([]);
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    customer_id: "",
-    package_id: "",
-    number_of_travelers: "1",
-    travel_date: "",
-    special_requests: "",
-  });
   const [filters, setFilters] = useState({
     search: "",
     status: "all",
@@ -52,8 +33,6 @@ const Orders = () => {
     minValue: "",
     maxValue: "",
   });
-  const [addCustomerOpen, setAddCustomerOpen] = useState(false);
-  const [addPackageOpen, setAddPackageOpen] = useState(false);
 
   useEffect(() => {
     if (organizationId) {
@@ -70,122 +49,42 @@ const Orders = () => {
 
     if (!organizationId) {
       setOrders([]);
-      setCustomers([]);
-      setPackages([]);
       return;
     }
 
-    const [ordersRes, customersRes, packagesRes] = await Promise.all([
-      supabase
-        .from("orders")
-        .select("*, customers(full_name), travel_packages(name)")
-        .eq("organization_id", organizationId)
-        .order("created_at", { ascending: false }),
-      supabase.from("customers").select("*").eq("organization_id", organizationId),
-      supabase.from("travel_packages").select("*").eq("organization_id", organizationId),
-    ]);
+    const { data: ordersData, error: ordersError } = await supabase
+      .from("orders")
+      .select("*, customers(full_name), travel_packages(name)")
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false });
 
-    if (ordersRes.error || customersRes.error || packagesRes.error) {
+    if (ordersError) {
       toast.error("Erro ao carregar dados");
       return;
     }
 
-    setOrders(ordersRes.data || []);
-    setCustomers(customersRes.data || []);
-    setPackages(packagesRes.data || []);
+    setOrders(ordersData || []);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleDelete = async (orderId: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
 
-    try {
-      // Validate form data
-      const validatedData = orderSchema.parse(formData);
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const selectedPackage = packages.find((p) => p.id === validatedData.package_id);
-      if (!selectedPackage) {
-        toast.error("Pacote selecionado não encontrado");
-        setLoading(false);
-        return;
-      }
-
-      if (!organizationId) {
-        toast.error("Organização não encontrada");
-        setLoading(false);
-        return;
-      }
-
-      const totalAmount = Number(selectedPackage.price) * parseInt(validatedData.number_of_travelers);
-      const orderNumber = `ORD-${Date.now()}`;
-
-      const { data: orderData, error: orderError } = await supabase
-        .from("orders")
-        .insert([
-          {
-            order_number: orderNumber,
-            customer_id: validatedData.customer_id,
-            package_id: validatedData.package_id,
-            number_of_travelers: parseInt(validatedData.number_of_travelers),
-            total_amount: totalAmount,
-            travel_date: validatedData.travel_date,
-            special_requests: validatedData.special_requests,
-            organization_id: organizationId,
-            created_by: session.user.id,
-          },
-        ])
-        .select()
-        .single();
-
-      if (orderError || !orderData) {
-        toast.error("Erro ao criar pedido");
-        setLoading(false);
-        return;
-      }
-
-      // Criar pagamento automaticamente
-      const { error: paymentError } = await supabase.from("payments").insert([
-        {
-          order_id: orderData.id,
-          amount: totalAmount,
-          due_date: validatedData.travel_date,
-          status: "pending",
-          organization_id: organizationId,
-          created_by: session.user.id,
-        },
-      ]);
-
-      if (paymentError) {
-        toast.error("Pedido criado, mas erro ao criar pagamento");
-        setLoading(false);
-        return;
-      }
-
-      toast.success("Pedido e pagamento criados com sucesso!");
-      setOpen(false);
-      setFormData({
-        customer_id: "",
-        package_id: "",
-        number_of_travelers: "1",
-        travel_date: "",
-        special_requests: "",
-      });
-      loadData();
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const firstError = error.errors[0];
-        toast.error(firstError.message);
-      } else {
-        toast.error("Erro ao validar dados do formulário");
-      }
-    } finally {
-      setLoading(false);
+    if (!organizationId) {
+      toast.error("Organização não encontrada");
+      return;
     }
-  };
 
+    const { error } = await supabase.from("orders").delete().eq("id", orderId);
+
+    if (error) {
+      toast.error("Erro ao excluir pedido");
+      return;
+    }
+
+    toast.success("Pedido excluído com sucesso!");
+    loadData();
+  };
 
   const getStatusBadge = (status: string) => {
     const variants: any = {
@@ -252,18 +151,6 @@ const Orders = () => {
     });
   };
 
-  const handleCustomerCreated = async (newCustomerId: string) => {
-    await loadData();
-    setFormData({ ...formData, customer_id: newCustomerId });
-    setAddCustomerOpen(false);
-  };
-
-  const handlePackageCreated = async (newPackageId: string) => {
-    await loadData();
-    setFormData({ ...formData, package_id: newPackageId });
-    setAddPackageOpen(false);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
@@ -280,100 +167,10 @@ const Orders = () => {
               <p className="text-sm text-muted-foreground">Gerencie suas vendas</p>
             </div>
           </div>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button variant="gradient">
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Pedido
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Criar Pedido</DialogTitle>
-                <DialogDescription>Registre uma nova venda</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="customer">Cliente</Label>
-                      <QuickAddCustomer
-                        open={addCustomerOpen}
-                        onOpenChange={setAddCustomerOpen}
-                        onCustomerCreated={handleCustomerCreated}
-                      />
-                    </div>
-                    <Select
-                      value={formData.customer_id}
-                      onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um cliente" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {customers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            {customer.full_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="package">Pacote</Label>
-                      <QuickAddPackage
-                        open={addPackageOpen}
-                        onOpenChange={setAddPackageOpen}
-                        onPackageCreated={handlePackageCreated}
-                      />
-                    </div>
-                    <Select
-                      value={formData.package_id}
-                      onValueChange={(value) => setFormData({ ...formData, package_id: value })}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um pacote" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {packages.map((pkg) => (
-                          <SelectItem key={pkg.id} value={pkg.id}>
-                            {pkg.name} - R$ {Number(pkg.price).toFixed(2)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="travelers">Número de Viajantes</Label>
-                    <Input
-                      id="travelers"
-                      type="number"
-                      min="1"
-                      value={formData.number_of_travelers}
-                      onChange={(e) => setFormData({ ...formData, number_of_travelers: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="travel_date">Data da Viagem</Label>
-                    <Input
-                      id="travel_date"
-                      type="date"
-                      value={formData.travel_date}
-                      onChange={(e) => setFormData({ ...formData, travel_date: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-                <Button type="submit" className="w-full" disabled={loading} variant="gradient">
-                  {loading ? "Criando..." : "Criar Pedido"}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button variant="gradient" onClick={() => navigate("/orders/create")}>
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Pedido
+          </Button>
         </div>
       </header>
 
