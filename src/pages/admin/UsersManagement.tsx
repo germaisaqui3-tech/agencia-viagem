@@ -66,7 +66,7 @@ export default function UsersManagement() {
         .from("profiles")
         .select(`
           *,
-          organization_members(
+          organization_members!organization_members_user_id_fkey(
             organization_id,
             role,
             is_active,
