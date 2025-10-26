@@ -72,13 +72,14 @@ serve(async (req) => {
     // Generate temporary password
     const tempPassword = `Temp${Math.random().toString(36).slice(-8)}!`;
 
-    // Create user in auth.users
+    // Create user in auth.users (trigger will create profile automatically)
     const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
       email,
       password: tempPassword,
       email_confirm: true,
       user_metadata: {
-        full_name
+        full_name,
+        phone: phone || null
       }
     });
 
@@ -90,24 +91,16 @@ serve(async (req) => {
       );
     }
 
-    // Create profile
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert({
-        id: newUser.user.id,
-        full_name,
-        email,
-        phone: phone || null
-      });
+    // Update phone if provided (profile was created by trigger)
+    if (phone) {
+      const { error: phoneError } = await supabase
+        .from('profiles')
+        .update({ phone })
+        .eq('id', newUser.user.id);
 
-    if (profileError) {
-      console.error('Error creating profile:', profileError);
-      // Rollback: delete the auth user
-      await supabase.auth.admin.deleteUser(newUser.user.id);
-      return new Response(
-        JSON.stringify({ error: 'Erro ao criar perfil do usuário' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (phoneError) {
+        console.error('Error updating phone:', phoneError);
+      }
     }
 
     // Create user role
