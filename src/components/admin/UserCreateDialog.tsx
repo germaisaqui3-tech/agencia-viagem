@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserPlus, Copy, Eye, EyeOff } from "lucide-react";
@@ -42,6 +43,20 @@ export function UserCreateDialog({ onSuccess }: UserCreateDialogProps) {
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
+  const { data: organizations } = useQuery({
+    queryKey: ['organizations'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
   const form = useForm<UserCreateData>({
     resolver: zodResolver(userCreateSchema),
     defaultValues: {
@@ -49,6 +64,8 @@ export function UserCreateDialog({ onSuccess }: UserCreateDialogProps) {
       full_name: "",
       phone: "",
       role: "user",
+      organization_id: "",
+      org_role: "agent",
     },
   });
 
@@ -189,7 +206,7 @@ export function UserCreateDialog({ onSuccess }: UserCreateDialogProps) {
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Role *</FormLabel>
+                  <FormLabel>Role do Sistema *</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -200,6 +217,55 @@ export function UserCreateDialog({ onSuccess }: UserCreateDialogProps) {
                       <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="agent">Agente</SelectItem>
                       <SelectItem value="user">Usuário</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="organization_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Organização *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a organização" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {organizations?.map(org => (
+                        <SelectItem key={org.id} value={org.id}>
+                          {org.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="org_role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Papel na Organização *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o papel" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="owner">Proprietário</SelectItem>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="agent">Agente</SelectItem>
+                      <SelectItem value="viewer">Visualizador</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

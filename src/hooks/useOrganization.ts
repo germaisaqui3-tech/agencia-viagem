@@ -17,6 +17,19 @@ export const useOrganization = () => {
           return;
         }
 
+        // Verificar se usuário tem role
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        // Se não tem role, não redirecionar - deixar useAuthProtection lidar
+        if (!roleData) {
+          setLoading(false);
+          return;
+        }
+
         // Buscar organização padrão do perfil
         const { data: profile } = await supabase
           .from('profiles')

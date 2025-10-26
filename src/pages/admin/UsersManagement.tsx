@@ -8,10 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Users, UserCheck, Search } from "lucide-react";
+import { ArrowLeft, Users, UserCheck, Search, Clock } from "lucide-react";
 import { UserCreateDialog } from "@/components/admin/UserCreateDialog";
 import { UserEditDialog } from "@/components/admin/UserEditDialog";
 import { UserDeleteDialog } from "@/components/admin/UserDeleteDialog";
+import { UserApprovalDialog } from "@/components/admin/UserApprovalDialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 interface UserProfile {
@@ -34,9 +35,10 @@ interface UserOrganization {
 }
 
 interface UserWithRole extends UserProfile {
-  role: AppRole;
+  role: AppRole | null;
   phone?: string;
   organizations?: UserOrganization[];
+  status: 'active' | 'pending';
 }
 
 export default function UsersManagement() {
@@ -46,6 +48,7 @@ export default function UsersManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [userToApprove, setUserToApprove] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     loadUsers();
@@ -95,12 +98,15 @@ export default function UsersManagement() {
             role: om.role
           })) || [];
 
+        const userRole = rolesMap.get(profile.id) as AppRole | undefined;
+
         return {
           ...profile,
-          role: (rolesMap.get(profile.id) as AppRole) || 'user' as AppRole,
+          role: userRole || null,
           organizations: userOrgs,
-          organization_members: undefined
-        };
+          organization_members: undefined,
+          status: userRole ? 'active' : 'pending'
+        } as UserWithRole;
       }) || [];
 
       setUsers(usersWithRoles);
@@ -129,7 +135,8 @@ export default function UsersManagement() {
     setFilteredUsers(filtered);
   };
 
-  const getRoleBadgeVariant = (role: AppRole) => {
+  const getRoleBadgeVariant = (role: AppRole | null) => {
+    if (!role) return "outline";
     switch (role) {
       case "admin":
         return "default";
@@ -140,7 +147,8 @@ export default function UsersManagement() {
     }
   };
 
-  const getRoleLabel = (role: AppRole) => {
+  const getRoleLabel = (role: AppRole | null) => {
+    if (!role) return "Pendente";
     switch (role) {
       case "admin":
         return "Admin";
@@ -228,6 +236,7 @@ export default function UsersManagement() {
 
   const totalUsers = users.length;
   const adminUsers = users.filter((u) => u.role === "admin").length;
+  const pendingUsers = users.filter((u) => u.status === "pending").length;
 
   return (
     <div className="space-y-6">
@@ -265,6 +274,18 @@ export default function UsersManagement() {
             <div className="text-2xl font-bold">{adminUsers}</div>
           </CardContent>
         </Card>
+
+        {pendingUsers > 0 && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Aguardando Aprovação</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{pendingUsers}</div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <Card>
@@ -322,17 +343,34 @@ export default function UsersManagement() {
                         <Badge variant={getRoleBadgeVariant(user.role)}>
                           {getRoleLabel(user.role)}
                         </Badge>
+                        {user.status === 'pending' && (
+                          <Badge variant="outline" className="ml-2 text-yellow-600 border-yellow-600">
+                            Aguardando
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>{renderOrganizations(user.organizations)}</TableCell>
                       <TableCell>{new Date(user.created_at).toLocaleDateString("pt-BR")}</TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
-                          <UserEditDialog user={user} onSuccess={loadUsers} />
-                          <UserDeleteDialog
-                            userId={user.id}
-                            userName={user.full_name}
-                            onSuccess={loadUsers}
-                          />
+                          {user.status === 'pending' ? (
+                            <Button 
+                              size="sm" 
+                              variant="default"
+                              onClick={() => setUserToApprove({ id: user.id, full_name: user.full_name, email: user.email, created_at: user.created_at })}
+                            >
+                              Aprovar
+                            </Button>
+                          ) : (
+                            <>
+                              <UserEditDialog user={user as any} onSuccess={loadUsers} />
+                              <UserDeleteDialog
+                                userId={user.id}
+                                userName={user.full_name}
+                                onSuccess={loadUsers}
+                              />
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -343,6 +381,13 @@ export default function UsersManagement() {
           )}
         </CardContent>
       </Card>
+
+      <UserApprovalDialog
+        user={userToApprove}
+        open={!!userToApprove}
+        onOpenChange={(open) => !open && setUserToApprove(null)}
+        onSuccess={loadUsers}
+      />
     </div>
   );
 }

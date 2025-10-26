@@ -178,6 +178,12 @@ export const userCreateSchema = z.object({
   role: z.enum(["admin", "agent", "user"], {
     required_error: "Selecione um role",
   }),
+  organization_id: z.string().uuid({
+    message: "Selecione uma organização válida"
+  }),
+  org_role: z.enum(["owner", "admin", "agent", "viewer"], {
+    required_error: "Selecione o papel na organização"
+  }),
 });
 
 export const userUpdateSchema = z.object({

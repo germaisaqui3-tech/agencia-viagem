@@ -12,6 +12,8 @@ interface CreateUserRequest {
   full_name: string;
   phone?: string;
   role: 'admin' | 'agent' | 'user';
+  organization_id: string;
+  org_role: 'owner' | 'admin' | 'agent' | 'viewer';
 }
 
 serve(async (req) => {
@@ -59,12 +61,26 @@ serve(async (req) => {
       );
     }
 
-    const { email, full_name, phone, role }: CreateUserRequest = await req.json();
+    const { email, full_name, phone, role, organization_id, org_role }: CreateUserRequest = await req.json();
 
     // Validate input
-    if (!email || !full_name || !role) {
+    if (!email || !full_name || !role || !organization_id || !org_role) {
       return new Response(
-        JSON.stringify({ error: 'Email, nome completo e role são obrigatórios' }),
+        JSON.stringify({ error: 'Email, nome completo, role, organização e papel na organização são obrigatórios' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify organization exists
+    const { data: orgData, error: orgError } = await supabase
+      .from('organizations')
+      .select('id')
+      .eq('id', organization_id)
+      .maybeSingle();
+
+    if (orgError || !orgData) {
+      return new Response(
+        JSON.stringify({ error: 'Organização não encontrada' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -122,7 +138,41 @@ serve(async (req) => {
       );
     }
 
-    console.log(`User created successfully: ${email} with role ${role}`);
+    // Create organization membership
+    const { error: memberError } = await supabase
+      .from('organization_members')
+      .insert({
+        user_id: newUser.user.id,
+        organization_id: organization_id,
+        role: org_role,
+        is_active: true,
+        joined_at: new Date().toISOString(),
+        invited_by: caller.id
+      });
+
+    if (memberError) {
+      console.error('Error creating organization membership:', memberError);
+      // Rollback: delete role, profile and auth user
+      await supabase.from('user_roles').delete().eq('user_id', newUser.user.id);
+      await supabase.from('profiles').delete().eq('id', newUser.user.id);
+      await supabase.auth.admin.deleteUser(newUser.user.id);
+      return new Response(
+        JSON.stringify({ error: 'Erro ao vincular usuário à organização' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Set default organization
+    const { error: defaultOrgError } = await supabase
+      .from('profiles')
+      .update({ default_organization_id: organization_id })
+      .eq('id', newUser.user.id);
+
+    if (defaultOrgError) {
+      console.error('Error setting default organization:', defaultOrgError);
+    }
+
+    console.log(`User created successfully: ${email} with role ${role} in org ${organization_id} as ${org_role}`);
 
     return new Response(
       JSON.stringify({
@@ -131,7 +181,9 @@ serve(async (req) => {
           id: newUser.user.id,
           email,
           full_name,
-          role
+          role,
+          organization_id,
+          org_role
         },
         temporary_password: tempPassword
       }),

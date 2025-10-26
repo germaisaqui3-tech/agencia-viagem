@@ -26,6 +26,7 @@ import UsersManagement from "./pages/admin/UsersManagement";
 import OrganizationsManagement from "./pages/admin/OrganizationsManagement";
 import OrganizationDetails from "./pages/admin/OrganizationDetails";
 import Profile from "./pages/Profile";
+import WaitingApproval from "./pages/WaitingApproval";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +63,7 @@ const App = () => (
         />
           <Route path="/invite/:token" element={<AcceptInvite />} />
           <Route path="/profile" element={<MainLayout><Profile /></MainLayout>} />
+          <Route path="/waiting-approval" element={<WaitingApproval />} />
           <Route path="/admin/users" element={<MainLayout><ProtectedRoute><UsersManagement /></ProtectedRoute></MainLayout>} />
           <Route path="/admin/organizations" element={<MainLayout><ProtectedRoute><OrganizationsManagement /></ProtectedRoute></MainLayout>} />
           <Route path="/admin/organizations/:id" element={<MainLayout><ProtectedRoute><OrganizationDetails /></ProtectedRoute></MainLayout>} />
