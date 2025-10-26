@@ -39,6 +39,7 @@ const OrderEdit = () => {
   const { toast } = useToast();
   const { organizationId } = useOrganization();
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
   const [formData, setFormData] = useState<Order | null>(null);
@@ -70,6 +71,7 @@ const OrderEdit = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
     if (!formData) return;
 
     const selectedPackage = packages.find(p => p.id === formData.package_id);

@@ -11,9 +11,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Edit, Plus } from "lucide-react";
+import { ArrowLeft, Edit, Plus, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { OrderDeleteDialog } from "@/components/orders/OrderDeleteDialog";
 import { useOrganization } from "@/hooks/useOrganization";
 
 interface OrderDetails {
@@ -230,10 +231,29 @@ const OrderView = () => {
               <p className="text-muted-foreground">Detalhes e pagamentos</p>
             </div>
           </div>
-          <Button onClick={() => navigate(`/orders/${id}/edit`)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Editar Pedido
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/orders/${id}/edit`)}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Editar Pedido
+            </Button>
+            {order && (
+              <OrderDeleteDialog
+                orderId={order.id}
+                orderNumber={order.order_number}
+                customerName={order.customer?.full_name || "N/A"}
+                trigger={
+                  <Button variant="outline" size="sm">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir
+                  </Button>
+                }
+              />
+            )}
+          </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">

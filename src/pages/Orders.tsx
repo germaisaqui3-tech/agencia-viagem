@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, ShoppingCart, Pencil, Eye } from "lucide-react";
+import { ArrowLeft, Plus, ShoppingCart, Edit, Eye, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { orderSchema } from "@/lib/validations";
 import { z } from "zod";
@@ -20,6 +20,13 @@ import { StatusFilter } from "@/components/filters/StatusFilter";
 import { ValueRangeFilter } from "@/components/filters/ValueRangeFilter";
 import { QuickAddCustomer } from "@/components/orders/QuickAddCustomer";
 import { QuickAddPackage } from "@/components/orders/QuickAddPackage";
+import { OrderDeleteDialog } from "@/components/orders/OrderDeleteDialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useOrganization } from "@/hooks/useOrganization";
 
 const Orders = () => {
@@ -29,23 +36,13 @@ const Orders = () => {
   const [customers, setCustomers] = useState<any[]>([]);
   const [packages, setPackages] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [formData, setFormData] = useState({
     customer_id: "",
     package_id: "",
     number_of_travelers: "1",
     travel_date: "",
     special_requests: "",
-  });
-  const [editFormData, setEditFormData] = useState({
-    customer_id: "",
-    package_id: "",
-    number_of_travelers: "1",
-    travel_date: "",
-    special_requests: "",
-    status: "pending" as "pending" | "confirmed" | "completed" | "cancelled",
   });
   const [filters, setFilters] = useState({
     search: "",
@@ -189,66 +186,6 @@ const Orders = () => {
     }
   };
 
-  const handleEdit = (order: any) => {
-    setSelectedOrder(order);
-    setEditFormData({
-      customer_id: order.customer_id,
-      package_id: order.package_id,
-      number_of_travelers: order.number_of_travelers.toString(),
-      travel_date: order.travel_date,
-      special_requests: order.special_requests || "",
-      status: order.status,
-    });
-    setEditOpen(true);
-  };
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session || !selectedOrder) return;
-
-      const selectedPackage = packages.find((p) => p.id === editFormData.package_id);
-      if (!selectedPackage) {
-        toast.error("Pacote selecionado não encontrado");
-        setLoading(false);
-        return;
-      }
-
-      const totalAmount = Number(selectedPackage.price) * parseInt(editFormData.number_of_travelers);
-
-      const { error } = await supabase
-        .from("orders")
-        .update({
-          customer_id: editFormData.customer_id,
-          package_id: editFormData.package_id,
-          number_of_travelers: parseInt(editFormData.number_of_travelers),
-          total_amount: totalAmount,
-          travel_date: editFormData.travel_date,
-          special_requests: editFormData.special_requests,
-          status: editFormData.status,
-        })
-        .eq("id", selectedOrder.id)
-        .eq("created_by", session.user.id);
-
-      if (error) {
-        toast.error("Erro ao atualizar pedido");
-        setLoading(false);
-        return;
-      }
-
-      toast.success("Pedido atualizado com sucesso!");
-      setEditOpen(false);
-      setSelectedOrder(null);
-      loadData();
-    } catch (error) {
-      toast.error("Erro ao atualizar pedido");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     const variants: any = {
@@ -437,107 +374,6 @@ const Orders = () => {
               </form>
             </DialogContent>
           </Dialog>
-
-          <Dialog open={editOpen} onOpenChange={setEditOpen}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Editar Pedido</DialogTitle>
-                <DialogDescription>Atualize os dados do pedido</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleUpdate} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit_customer">Cliente</Label>
-                    <Select
-                      value={editFormData.customer_id}
-                      onValueChange={(value) => setEditFormData({ ...editFormData, customer_id: value })}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um cliente" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {customers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            {customer.full_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit_package">Pacote</Label>
-                    <Select
-                      value={editFormData.package_id}
-                      onValueChange={(value) => setEditFormData({ ...editFormData, package_id: value })}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um pacote" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {packages.map((pkg) => (
-                          <SelectItem key={pkg.id} value={pkg.id}>
-                            {pkg.name} - R$ {Number(pkg.price).toFixed(2)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit_travelers">Número de Viajantes</Label>
-                    <Input
-                      id="edit_travelers"
-                      type="number"
-                      min="1"
-                      value={editFormData.number_of_travelers}
-                      onChange={(e) => setEditFormData({ ...editFormData, number_of_travelers: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit_travel_date">Data da Viagem</Label>
-                    <Input
-                      id="edit_travel_date"
-                      type="date"
-                      value={editFormData.travel_date}
-                      onChange={(e) => setEditFormData({ ...editFormData, travel_date: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="edit_status">Status</Label>
-                    <Select
-                      value={editFormData.status}
-                      onValueChange={(value) => setEditFormData({ ...editFormData, status: value as "pending" | "confirmed" | "completed" | "cancelled" })}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pendente</SelectItem>
-                        <SelectItem value="confirmed">Confirmado</SelectItem>
-                        <SelectItem value="completed">Concluído</SelectItem>
-                        <SelectItem value="cancelled">Cancelado</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="edit_special_requests">Solicitações Especiais</Label>
-                    <Input
-                      id="edit_special_requests"
-                      value={editFormData.special_requests}
-                      onChange={(e) => setEditFormData({ ...editFormData, special_requests: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <Button type="submit" className="w-full" disabled={loading} variant="gradient">
-                  {loading ? "Atualizando..." : "Atualizar Pedido"}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
         </div>
       </header>
 
@@ -611,22 +447,41 @@ const Orders = () => {
                     </TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => navigate(`/orders/${order.id}`)}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => navigate(`/orders/${order.id}/edit`)}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            •••
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => navigate(`/orders/${order.id}`)}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Ver Detalhes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => navigate(`/orders/${order.id}/edit`)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <OrderDeleteDialog
+                              orderId={order.id}
+                              orderNumber={order.order_number}
+                              customerName={order.customers?.full_name || "N/A"}
+                              onSuccess={loadData}
+                              trigger={
+                                <span className="flex items-center text-destructive cursor-pointer w-full">
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Excluir
+                                </span>
+                              }
+                            />
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
