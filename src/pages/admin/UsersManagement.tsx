@@ -8,9 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Users, UserCheck, Search, Clock } from "lucide-react";
+import { ArrowLeft, Users, UserCheck, Search, Clock, Edit } from "lucide-react";
 import { UserCreateDialog } from "@/components/admin/UserCreateDialog";
-import { UserEditDialog } from "@/components/admin/UserEditDialog";
 import { UserDeleteDialog } from "@/components/admin/UserDeleteDialog";
 import { UserApprovalDialog } from "@/components/admin/UserApprovalDialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
@@ -368,7 +367,13 @@ export default function UsersManagement() {
                             </Button>
                           ) : (
                             <>
-                              <UserEditDialog user={user as any} onSuccess={loadUsers} />
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => navigate(`/admin/users/${user.id}/edit`)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
                               <UserDeleteDialog
                                 userId={user.id}
                                 userName={user.full_name}

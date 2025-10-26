@@ -1,17 +1,10 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Edit, Trash2, Plus } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { ArrowLeft, User, Trash2, Plus } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -57,16 +50,14 @@ interface UserWithRole {
   organizations?: UserOrganization[];
 }
 
-interface UserEditDialogProps {
-  user: UserWithRole;
-  onSuccess: () => void;
-}
-
-export function UserEditDialog({ user, onSuccess }: UserEditDialogProps) {
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+export default function UserEdit() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [user, setUser] = useState<UserWithRole | null>(null);
   const [emailChanged, setEmailChanged] = useState(false);
-  const [organizations, setOrganizations] = useState<UserOrganization[]>(user.organizations || []);
+  const [organizations, setOrganizations] = useState<UserOrganization[]>([]);
   const [availableOrgs, setAvailableOrgs] = useState<{id: string, name: string}[]>([]);
   const [selectedOrgToAdd, setSelectedOrgToAdd] = useState<string>("");
   const [selectedOrgRole, setSelectedOrgRole] = useState<OrgRole>("agent");
@@ -74,27 +65,99 @@ export function UserEditDialog({ user, onSuccess }: UserEditDialogProps) {
   const form = useForm<UserUpdateData>({
     resolver: zodResolver(userUpdateSchema),
     defaultValues: {
-      full_name: user.full_name,
-      email: user.email,
-      phone: user.phone || "",
-      role: user.role,
+      full_name: "",
+      email: "",
+      phone: "",
+      role: "agent",
     },
   });
 
   const emailValue = form.watch("email");
 
   useEffect(() => {
-    setEmailChanged(emailValue !== user.email);
-  }, [emailValue, user.email]);
+    if (user) {
+      setEmailChanged(emailValue !== user.email);
+    }
+  }, [emailValue, user]);
 
   useEffect(() => {
-    if (open) {
-      setOrganizations(user.organizations || []);
-      loadAvailableOrganizations();
-    }
-  }, [open, user.organizations]);
+    loadUser();
+  }, [id]);
 
-  const loadAvailableOrganizations = async () => {
+  const loadUser = async () => {
+    try {
+      setLoading(true);
+
+      // Carregar perfil do usuário
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select(`
+          *,
+          organization_members!organization_members_user_id_fkey(
+            id,
+            organization_id,
+            role,
+            is_active,
+            organizations(
+              id,
+              name
+            )
+          )
+        `)
+        .eq("id", id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Carregar role do usuário
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", id)
+        .maybeSingle();
+
+      // Agrupar organizações do usuário
+      const userOrgs = (profile as any).organization_members
+        ?.filter((om: any) => om.is_active && om.organizations)
+        .map((om: any) => ({
+          membership_id: om.id,
+          organization_id: om.organizations.id,
+          name: om.organizations.name,
+          role: om.role,
+          is_active: om.is_active
+        })) || [];
+
+      const userData: UserWithRole = {
+        id: profile.id,
+        full_name: profile.full_name,
+        email: profile.email,
+        phone: profile.phone || "",
+        role: (roleData?.role as AppRole) || "agent",
+        created_at: profile.created_at,
+        organizations: userOrgs,
+      };
+
+      setUser(userData);
+      setOrganizations(userOrgs);
+      
+      form.reset({
+        full_name: userData.full_name,
+        email: userData.email,
+        phone: userData.phone || "",
+        role: userData.role,
+      });
+
+      loadAvailableOrganizations(userOrgs);
+    } catch (error) {
+      console.error("Error loading user:", error);
+      toast.error("Erro ao carregar usuário");
+      navigate("/admin/users");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadAvailableOrganizations = async (currentOrgs: UserOrganization[]) => {
     try {
       const { data, error } = await supabase
         .from("organizations")
@@ -104,7 +167,7 @@ export function UserEditDialog({ user, onSuccess }: UserEditDialogProps) {
 
       if (error) throw error;
       
-      const userOrgIds = organizations.map(o => o.organization_id);
+      const userOrgIds = currentOrgs.map(o => o.organization_id);
       const available = data?.filter(org => !userOrgIds.includes(org.id)) || [];
       
       setAvailableOrgs(available);
@@ -114,7 +177,7 @@ export function UserEditDialog({ user, onSuccess }: UserEditDialogProps) {
   };
 
   const handleAddOrganization = async () => {
-    if (!selectedOrgToAdd) {
+    if (!selectedOrgToAdd || !user) {
       toast.error("Selecione uma organização");
       return;
     }
@@ -148,10 +211,11 @@ export function UserEditDialog({ user, onSuccess }: UserEditDialogProps) {
         is_active: data.is_active,
       };
 
-      setOrganizations([...organizations, newOrg]);
+      const updatedOrgs = [...organizations, newOrg];
+      setOrganizations(updatedOrgs);
       setSelectedOrgToAdd("");
       setSelectedOrgRole("agent");
-      loadAvailableOrganizations();
+      loadAvailableOrganizations(updatedOrgs);
       
       toast.success("Organização adicionada!");
     } catch (error: any) {
@@ -183,8 +247,9 @@ export function UserEditDialog({ user, onSuccess }: UserEditDialogProps) {
 
       if (error) throw error;
 
-      setOrganizations(organizations.filter(o => o.membership_id !== membershipId));
-      loadAvailableOrganizations();
+      const updatedOrgs = organizations.filter(o => o.membership_id !== membershipId);
+      setOrganizations(updatedOrgs);
+      loadAvailableOrganizations(updatedOrgs);
       toast.success(`Usuário removido da organização ${orgName}`);
     } catch (error: any) {
       console.error("Error removing organization:", error);
@@ -220,7 +285,9 @@ export function UserEditDialog({ user, onSuccess }: UserEditDialogProps) {
   };
 
   const onSubmit = async (values: UserUpdateData) => {
-    setLoading(true);
+    if (!user) return;
+    
+    setSaving(true);
 
     try {
       // Update profile
@@ -246,32 +313,33 @@ export function UserEditDialog({ user, onSuccess }: UserEditDialogProps) {
       }
 
       toast.success("Usuário atualizado com sucesso!");
-      setOpen(false);
-      onSuccess();
+      navigate("/admin/users");
     } catch (error: any) {
       toast.error("Erro ao atualizar usuário");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
+  if (loading || !user) {
+    return <div className="p-8">Carregando...</div>;
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Edit className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Editar Usuário</DialogTitle>
-          <DialogDescription>
-            Atualize as informações do usuário
-          </DialogDescription>
-        </DialogHeader>
+    <div className="min-h-screen bg-background p-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center gap-4 mb-6">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/admin/users")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="w-10 h-10 bg-gradient-to-r from-accent to-secondary rounded-full flex items-center justify-center">
+            <User className="w-5 h-5 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold">Editar Usuário</h1>
+        </div>
 
         {emailChanged && (
-          <Alert>
+          <Alert className="mb-6">
             <AlertDescription>
               ⚠️ Alterar o email modificará o login do usuário. Certifique-se de informá-lo.
             </AlertDescription>
@@ -279,71 +347,73 @@ export function UserEditDialog({ user, onSuccess }: UserEditDialogProps) {
         )}
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="full_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome Completo *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="João Silva" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email *</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="usuario@exemplo.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Telefone</FormLabel>
-                  <FormControl>
-                    <PhoneInput {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Role *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 bg-card p-6 rounded-lg border">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="full_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome Completo *</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um role" />
-                      </SelectTrigger>
+                      <Input placeholder="João Silva" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="agent">Agente</SelectItem>
-                      <SelectItem value="user">Usuário</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email *</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="usuario@exemplo.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Telefone</FormLabel>
+                    <FormControl>
+                      <PhoneInput {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="agent">Agente</SelectItem>
+                        <SelectItem value="user">Usuário</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <Separator className="my-6" />
 
@@ -434,17 +504,17 @@ export function UserEditDialog({ user, onSuccess }: UserEditDialogProps) {
               )}
             </div>
 
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                Cancelar
+            <div className="flex gap-4 pt-4">
+              <Button type="submit" disabled={saving}>
+                {saving ? "Salvando..." : "Salvar Alterações"}
               </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Salvando..." : "Salvar"}
+              <Button type="button" variant="outline" onClick={() => navigate("/admin/users")}>
+                Cancelar
               </Button>
             </div>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
