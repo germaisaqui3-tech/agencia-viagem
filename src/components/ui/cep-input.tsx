@@ -28,6 +28,7 @@ interface CepInputProps extends Omit<React.ComponentProps<"input">, "onChange"> 
 const CepInput = React.forwardRef<HTMLInputElement, CepInputProps>(
   ({ className, value, onChange, onAddressFound, ...props }, ref) => {
     const [loading, setLoading] = React.useState(false);
+    const lastFetchedCep = React.useRef<string>("");
 
     const formatCep = (inputValue: string): string => {
       const digits = inputValue.replace(/\D/g, "");
@@ -85,7 +86,15 @@ const CepInput = React.forwardRef<HTMLInputElement, CepInputProps>(
     React.useEffect(() => {
       const cleanedCep = value.replace(/\D/g, "");
       
-      if (cleanedCep.length === 8) {
+      // Reseta referência se CEP incompleto
+      if (cleanedCep.length < 8) {
+        lastFetchedCep.current = "";
+        return;
+      }
+      
+      // Só consulta se CEP diferente do último consultado
+      if (cleanedCep.length === 8 && cleanedCep !== lastFetchedCep.current) {
+        lastFetchedCep.current = cleanedCep;
         fetchAddress(cleanedCep);
       }
     }, [value, fetchAddress]);
