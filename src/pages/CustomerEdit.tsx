@@ -11,7 +11,8 @@ import { customerSchema } from "@/lib/validations";
 import { z } from "zod";
 import { CpfInput } from "@/components/ui/cpf-input";
 import { PhoneInput } from "@/components/ui/phone-input";
-import { cleanCpf, cleanPhone, formatCpf, formatPhone } from "@/lib/utils";
+import { CepInput } from "@/components/ui/cep-input";
+import { cleanCpf, cleanPhone, formatCpf, formatPhone, cleanCep, formatCep } from "@/lib/utils";
 
 interface Customer {
   id: string;
@@ -57,6 +58,7 @@ const CustomerEdit = () => {
         ...data,
         phone: data.phone ? formatPhone(data.phone) : "",
         cpf: data.cpf ? formatCpf(data.cpf) : null,
+        zip_code: data.zip_code ? formatCep(data.zip_code) : null,
       } as Customer);
     }
     setLoading(false);
@@ -95,7 +97,7 @@ const CustomerEdit = () => {
           address: validatedData.address || null,
           city: validatedData.city || null,
           state: validatedData.state || null,
-          zip_code: validatedData.zip_code || null,
+          zip_code: validatedData.zip_code ? cleanCep(validatedData.zip_code) : null,
           notes: formData.notes,
         })
         .eq("id", id)
@@ -193,10 +195,18 @@ const CustomerEdit = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="zip_code">CEP</Label>
-              <Input
+              <CepInput
                 id="zip_code"
                 value={formData.zip_code || ""}
                 onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
+                onAddressFound={(address) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    address: address.street,
+                    city: address.city,
+                    state: address.state,
+                  }));
+                }}
               />
             </div>
             <div className="space-y-2 col-span-2">

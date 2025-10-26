@@ -45,7 +45,10 @@ export const customerSchema = z.object({
   zip_code: z
     .string()
     .trim()
-    .refine((val) => val === "" || /^\d{5}-?\d{3}$/.test(val), "CEP deve estar no formato 00000-000")
+    .refine(
+      (val) => val === "" || /^\d{5}-\d{3}$/.test(val), 
+      "CEP deve estar no formato 00000-000"
+    )
     .transform((val) => val || undefined),
 });
 

@@ -18,7 +18,8 @@ import { MonthFilter } from "@/components/filters/MonthFilter";
 import { useOrganization } from "@/hooks/useOrganization";
 import { CpfInput } from "@/components/ui/cpf-input";
 import { PhoneInput } from "@/components/ui/phone-input";
-import { cleanCpf, cleanPhone } from "@/lib/utils";
+import { CepInput } from "@/components/ui/cep-input";
+import { cleanCpf, cleanPhone, cleanCep } from "@/lib/utils";
 
 const Customers = () => {
   const navigate = useNavigate();
@@ -113,7 +114,7 @@ const Customers = () => {
         ...(validatedData.address && { address: validatedData.address }),
         ...(validatedData.city && { city: validatedData.city }),
         ...(validatedData.state && { state: validatedData.state }),
-        ...(validatedData.zip_code && { zip_code: validatedData.zip_code }),
+        ...(validatedData.zip_code && { zip_code: cleanCep(validatedData.zip_code) }),
         organization_id: organizationId,
         created_by: session.user.id,
       };
@@ -267,10 +268,18 @@ const Customers = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="zip_code">CEP</Label>
-                    <Input
+                    <CepInput
                       id="zip_code"
                       value={formData.zip_code}
                       onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
+                      onAddressFound={(address) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          address: address.street,
+                          city: address.city,
+                          state: address.state,
+                        }));
+                      }}
                     />
                   </div>
                   <div className="space-y-2 col-span-2">

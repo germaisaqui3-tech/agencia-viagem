@@ -92,3 +92,28 @@ export function formatCpf(cpf: string): string {
   
   return formatted;
 }
+
+/**
+ * Remove formatação de CEP
+ * Entrada: "12345-678"
+ * Saída: "12345678"
+ */
+export function cleanCep(cep: string): string {
+  return cep.replace(/\D/g, "");
+}
+
+/**
+ * Formata CEP brasileiro
+ * Entrada: "12345678"
+ * Saída: "12345-678"
+ */
+export function formatCep(cep: string): string {
+  const digits = cep.replace(/\D/g, "");
+  const limited = digits.slice(0, 8);
+  
+  if (limited.length > 5) {
+    return limited.slice(0, 5) + "-" + limited.slice(5);
+  }
+  
+  return limited;
+}
