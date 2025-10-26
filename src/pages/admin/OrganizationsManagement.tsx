@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Building2, Search } from "lucide-react";
+import { ArrowLeft, Building2, Search, Eye } from "lucide-react";
 
 interface Organization {
   id: string;
@@ -157,6 +157,7 @@ export default function OrganizationsManagement() {
                     <TableHead>Membros</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Data de Criação</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -172,6 +173,16 @@ export default function OrganizationsManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell>{new Date(org.created_at).toLocaleDateString("pt-BR")}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/admin/organizations/${org.id}`)}
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Ver Detalhes
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

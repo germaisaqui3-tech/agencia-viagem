@@ -24,6 +24,7 @@ import CreateOrganization from "./pages/CreateOrganization";
 import AcceptInvite from "./pages/AcceptInvite";
 import UsersManagement from "./pages/admin/UsersManagement";
 import OrganizationsManagement from "./pages/admin/OrganizationsManagement";
+import OrganizationDetails from "./pages/admin/OrganizationDetails";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -56,6 +57,7 @@ const App = () => (
           <Route path="/profile" element={<MainLayout><Profile /></MainLayout>} />
           <Route path="/admin/users" element={<MainLayout><ProtectedRoute><UsersManagement /></ProtectedRoute></MainLayout>} />
           <Route path="/admin/organizations" element={<MainLayout><ProtectedRoute><OrganizationsManagement /></ProtectedRoute></MainLayout>} />
+          <Route path="/admin/organizations/:id" element={<MainLayout><ProtectedRoute><OrganizationDetails /></ProtectedRoute></MainLayout>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
