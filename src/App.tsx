@@ -52,7 +52,14 @@ const App = () => (
           <Route path="/birthdays" element={<MainLayout><Birthdays /></MainLayout>} />
           <Route path="/delinquency" element={<MainLayout><Delinquency /></MainLayout>} />
           <Route path="/organization/settings" element={<MainLayout><OrganizationSettings /></MainLayout>} />
-          <Route path="/organization/create" element={<CreateOrganization />} />
+        <Route 
+          path="/organization/create" 
+          element={
+            <ProtectedRoute>
+              <CreateOrganization />
+            </ProtectedRoute>
+          } 
+        />
           <Route path="/invite/:token" element={<AcceptInvite />} />
           <Route path="/profile" element={<MainLayout><Profile /></MainLayout>} />
           <Route path="/admin/users" element={<MainLayout><ProtectedRoute><UsersManagement /></ProtectedRoute></MainLayout>} />

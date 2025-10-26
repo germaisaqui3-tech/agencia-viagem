@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSystemAdmin } from "@/hooks/useSystemAdmin";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,6 +22,7 @@ interface Organization {
 
 export const OrganizationSwitcher = () => {
   const navigate = useNavigate();
+  const { isSystemAdmin } = useSystemAdmin();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [currentOrg, setCurrentOrg] = useState<Organization | null>(null);
 
@@ -112,10 +114,12 @@ export const OrganizationSwitcher = () => {
           <Settings className="w-4 h-4 mr-2" />
           Configurações
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate("/organization/create")}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Organização
-        </DropdownMenuItem>
+        {isSystemAdmin && (
+          <DropdownMenuItem onClick={() => navigate("/organization/create")}>
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Organização
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

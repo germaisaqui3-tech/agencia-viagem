@@ -41,7 +41,13 @@ export default function CreateOrganization() {
         });
 
       if (createError) {
-        toast.error("Erro ao criar organização");
+        // Verificar se é erro de permissão
+        if (createError.message?.includes('Apenas administradores')) {
+          toast.error("Você não tem permissão para criar organizações");
+          navigate("/dashboard");
+        } else {
+          toast.error("Erro ao criar organização: " + createError.message);
+        }
         setLoading(false);
         return;
       }
