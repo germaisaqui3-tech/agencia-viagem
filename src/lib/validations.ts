@@ -49,6 +49,37 @@ export const customerSchema = z.object({
     .transform((val) => val || undefined),
 });
 
+// Quick add customer validation schema (essential fields only)
+export const quickAddCustomerSchema = z.object({
+  full_name: z
+    .string()
+    .trim()
+    .min(1, "Nome é obrigatório")
+    .max(100, "Nome deve ter no máximo 100 caracteres"),
+  email: z
+    .string()
+    .trim()
+    .email("Email inválido")
+    .max(255, "Email deve ter no máximo 255 caracteres"),
+  phone: z
+    .string()
+    .trim()
+    .min(1, "Telefone é obrigatório")
+    .regex(/^[\d\s\(\)\-\+]+$/, "Telefone deve conter apenas números e símbolos válidos")
+    .max(20, "Telefone deve ter no máximo 20 caracteres"),
+  cpf: z
+    .string()
+    .trim()
+    .refine((val) => val === "" || /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(val), "CPF deve estar no formato 000.000.000-00")
+    .optional()
+    .or(z.literal("")),
+  birth_date: z
+    .string()
+    .refine((val) => val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), "Data inválida")
+    .optional()
+    .or(z.literal("")),
+});
+
 // Travel package validation schema
 export const packageSchema = z.object({
   name: z
@@ -171,6 +202,7 @@ export const userUpdateSchema = z.object({
 });
 
 export type CustomerFormData = z.infer<typeof customerSchema>;
+export type QuickAddCustomerFormData = z.infer<typeof quickAddCustomerSchema>;
 export type PackageFormData = z.infer<typeof packageSchema>;
 export type OrderFormData = z.infer<typeof orderSchema>;
 export type AuthLoginData = z.infer<typeof authLoginSchema>;

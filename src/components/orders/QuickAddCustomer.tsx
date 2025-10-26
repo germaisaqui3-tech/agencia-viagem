@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { customerSchema } from "@/lib/validations";
+import { quickAddCustomerSchema } from "@/lib/validations";
 import { z } from "zod";
 import { useOrganization } from "@/hooks/useOrganization";
 
@@ -32,7 +32,7 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
     setLoading(true);
 
     try {
-      const validatedData = customerSchema.parse(formData);
+      const validatedData = quickAddCustomerSchema.parse(formData);
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -54,8 +54,8 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
             full_name: validatedData.full_name,
             email: validatedData.email,
             phone: validatedData.phone,
-            cpf: validatedData.cpf,
-            birth_date: validatedData.birth_date,
+            cpf: validatedData.cpf || null,
+            birth_date: validatedData.birth_date || null,
             organization_id: organizationId,
             created_by: session.user.id,
           },
