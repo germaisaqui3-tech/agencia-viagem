@@ -12,6 +12,7 @@ import { ArrowLeft, Users, UserCheck, Search } from "lucide-react";
 import { UserCreateDialog } from "@/components/admin/UserCreateDialog";
 import { UserEditDialog } from "@/components/admin/UserEditDialog";
 import { UserDeleteDialog } from "@/components/admin/UserDeleteDialog";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 interface UserProfile {
   id: string;
@@ -26,9 +27,16 @@ interface UserRole {
 
 type AppRole = "admin" | "agent" | "user";
 
+interface UserOrganization {
+  id: string;
+  name: string;
+  role: 'owner' | 'admin' | 'agent' | 'viewer';
+}
+
 interface UserWithRole extends UserProfile {
   role: AppRole;
   phone?: string;
+  organizations?: UserOrganization[];
 }
 
 export default function UsersManagement() {
@@ -53,7 +61,18 @@ export default function UsersManagement() {
       
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("*")
+        .select(`
+          *,
+          organization_members(
+            organization_id,
+            role,
+            is_active,
+            organizations(
+              id,
+              name
+            )
+          )
+        `)
         .order("created_at", { ascending: false });
 
       if (profilesError) throw profilesError;
@@ -66,10 +85,23 @@ export default function UsersManagement() {
 
       const rolesMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
       
-      const usersWithRoles = profiles?.map(profile => ({
-        ...profile,
-        role: (rolesMap.get(profile.id) as AppRole) || 'user' as AppRole
-      })) || [];
+      const usersWithRoles = profiles?.map(profile => {
+        // Agrupar organizações do usuário
+        const userOrgs = (profile as any).organization_members
+          ?.filter((om: any) => om.is_active && om.organizations)
+          .map((om: any) => ({
+            id: om.organizations.id,
+            name: om.organizations.name,
+            role: om.role
+          })) || [];
+
+        return {
+          ...profile,
+          role: (rolesMap.get(profile.id) as AppRole) || 'user' as AppRole,
+          organizations: userOrgs,
+          organization_members: undefined
+        };
+      }) || [];
 
       setUsers(usersWithRoles);
     } catch (error) {
@@ -117,6 +149,81 @@ export default function UsersManagement() {
       default:
         return "Usuário";
     }
+  };
+
+  const getOrgRoleBadgeVariant = (role: string) => {
+    switch (role) {
+      case "owner":
+        return "default";
+      case "admin":
+        return "secondary";
+      case "agent":
+        return "outline";
+      case "viewer":
+        return "outline";
+      default:
+        return "outline";
+    }
+  };
+
+  const getOrgRoleLabel = (role: string) => {
+    switch (role) {
+      case "owner":
+        return "Proprietário";
+      case "admin":
+        return "Admin";
+      case "agent":
+        return "Agente";
+      case "viewer":
+        return "Visualizador";
+      default:
+        return role;
+    }
+  };
+
+  const renderOrganizations = (organizations?: UserOrganization[]) => {
+    if (!organizations || organizations.length === 0) {
+      return <span className="text-muted-foreground text-sm">Nenhuma</span>;
+    }
+
+    // Se tiver só 1 organização, mostrar diretamente
+    if (organizations.length === 1) {
+      const org = organizations[0];
+      return (
+        <div className="flex flex-col gap-1">
+          <span className="text-sm font-medium">{org.name}</span>
+          <Badge variant={getOrgRoleBadgeVariant(org.role)} className="w-fit text-xs">
+            {getOrgRoleLabel(org.role)}
+          </Badge>
+        </div>
+      );
+    }
+
+    // Se tiver múltiplas, mostrar com HoverCard
+    return (
+      <HoverCard>
+        <HoverCardTrigger asChild>
+          <Button variant="outline" size="sm" className="h-auto py-1">
+            {organizations.length} organizações
+          </Button>
+        </HoverCardTrigger>
+        <HoverCardContent className="w-80">
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold">Organizações do Usuário</h4>
+            <div className="space-y-2">
+              {organizations.map((org) => (
+                <div key={org.id} className="flex items-center justify-between p-2 rounded border">
+                  <span className="text-sm font-medium truncate flex-1">{org.name}</span>
+                  <Badge variant={getOrgRoleBadgeVariant(org.role)} className="ml-2 text-xs">
+                    {getOrgRoleLabel(org.role)}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        </HoverCardContent>
+      </HoverCard>
+    );
   };
 
   const totalUsers = users.length;
@@ -199,7 +306,8 @@ export default function UsersManagement() {
                     <TableHead>Nome</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Telefone</TableHead>
-                    <TableHead>Role</TableHead>
+                    <TableHead>Role Sistema</TableHead>
+                    <TableHead>Organizações</TableHead>
                     <TableHead>Data de Criação</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
@@ -215,6 +323,7 @@ export default function UsersManagement() {
                           {getRoleLabel(user.role)}
                         </Badge>
                       </TableCell>
+                      <TableCell>{renderOrganizations(user.organizations)}</TableCell>
                       <TableCell>{new Date(user.created_at).toLocaleDateString("pt-BR")}</TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
