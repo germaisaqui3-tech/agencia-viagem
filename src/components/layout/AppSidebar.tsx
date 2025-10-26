@@ -1,4 +1,4 @@
-import { Home, Package, Users, ShoppingCart, DollarSign, Calendar, AlertTriangle, Building2, UserCog, Settings } from "lucide-react";
+import { Home, Package, Users, ShoppingCart, DollarSign, Calendar, AlertTriangle, Building2, UserCog, Settings, UserCircle } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -29,6 +29,7 @@ const reportItems = [
 ];
 
 const settingsItems = [
+  { title: "Meu Perfil", url: "/profile", icon: UserCircle },
   { title: "Organização", url: "/organization/settings", icon: Building2 },
 ];
 

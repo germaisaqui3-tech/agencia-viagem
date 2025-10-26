@@ -23,6 +23,7 @@ import CreateOrganization from "./pages/CreateOrganization";
 import AcceptInvite from "./pages/AcceptInvite";
 import UsersManagement from "./pages/admin/UsersManagement";
 import OrganizationsManagement from "./pages/admin/OrganizationsManagement";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
           <Route path="/organization/settings" element={<MainLayout><OrganizationSettings /></MainLayout>} />
           <Route path="/organization/create" element={<CreateOrganization />} />
           <Route path="/invite/:token" element={<AcceptInvite />} />
+          <Route path="/profile" element={<MainLayout><Profile /></MainLayout>} />
           <Route path="/admin/users" element={<MainLayout><ProtectedRoute><UsersManagement /></ProtectedRoute></MainLayout>} />
           <Route path="/admin/organizations" element={<MainLayout><ProtectedRoute><OrganizationsManagement /></ProtectedRoute></MainLayout>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
