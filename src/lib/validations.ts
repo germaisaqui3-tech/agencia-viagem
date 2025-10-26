@@ -127,8 +127,53 @@ export const authSignupSchema = z.object({
     .max(100, "Nome deve ter no máximo 100 caracteres"),
 });
 
+// User management schemas (admin)
+export const userCreateSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email("Email inválido")
+    .max(255, "Email deve ter no máximo 255 caracteres"),
+  full_name: z
+    .string()
+    .trim()
+    .min(3, "O nome deve ter no mínimo 3 caracteres")
+    .max(100, "O nome deve ter no máximo 100 caracteres"),
+  phone: z
+    .string()
+    .trim()
+    .max(20, "Telefone deve ter no máximo 20 caracteres")
+    .optional(),
+  role: z.enum(["admin", "agent", "user"], {
+    required_error: "Selecione um role",
+  }),
+});
+
+export const userUpdateSchema = z.object({
+  full_name: z
+    .string()
+    .trim()
+    .min(3, "O nome deve ter no mínimo 3 caracteres")
+    .max(100, "O nome deve ter no máximo 100 caracteres"),
+  email: z
+    .string()
+    .trim()
+    .email("Email inválido")
+    .max(255, "Email deve ter no máximo 255 caracteres"),
+  phone: z
+    .string()
+    .trim()
+    .max(20, "Telefone deve ter no máximo 20 caracteres")
+    .optional(),
+  role: z.enum(["admin", "agent", "user"], {
+    required_error: "Selecione um role",
+  }),
+});
+
 export type CustomerFormData = z.infer<typeof customerSchema>;
 export type PackageFormData = z.infer<typeof packageSchema>;
 export type OrderFormData = z.infer<typeof orderSchema>;
 export type AuthLoginData = z.infer<typeof authLoginSchema>;
 export type AuthSignupData = z.infer<typeof authSignupSchema>;
+export type UserCreateData = z.infer<typeof userCreateSchema>;
+export type UserUpdateData = z.infer<typeof userUpdateSchema>;

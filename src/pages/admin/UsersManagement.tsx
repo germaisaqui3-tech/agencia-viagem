@@ -6,11 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { ArrowLeft, Users, UserCheck, Search, Edit } from "lucide-react";
+import { ArrowLeft, Users, UserCheck, Search } from "lucide-react";
+import { UserCreateDialog } from "@/components/admin/UserCreateDialog";
+import { UserEditDialog } from "@/components/admin/UserEditDialog";
+import { UserDeleteDialog } from "@/components/admin/UserDeleteDialog";
 
 interface UserProfile {
   id: string;
@@ -27,6 +28,7 @@ type AppRole = "admin" | "agent" | "user";
 
 interface UserWithRole extends UserProfile {
   role: AppRole;
+  phone?: string;
 }
 
 export default function UsersManagement() {
@@ -36,9 +38,6 @@ export default function UsersManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
-  const [newRole, setNewRole] = useState<AppRole>("user");
-  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -98,25 +97,6 @@ export default function UsersManagement() {
     setFilteredUsers(filtered);
   };
 
-  const handleEditRole = async () => {
-    if (!selectedUser || !newRole) return;
-
-    try {
-      const { error } = await supabase
-        .from("user_roles")
-        .update({ role: newRole })
-        .eq("user_id", selectedUser.id);
-
-      if (error) throw error;
-
-      toast.success("Role atualizada com sucesso");
-      setDialogOpen(false);
-      loadUsers();
-    } catch (error) {
-      toast.error("Erro ao atualizar role");
-    }
-  };
-
   const getRoleBadgeVariant = (role: AppRole) => {
     switch (role) {
       case "admin":
@@ -144,15 +124,18 @@ export default function UsersManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => navigate("/dashboard")}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Voltar
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Gerenciamento de Usuários</h1>
-          <p className="text-muted-foreground">Gerencie todos os usuários do sistema</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={() => navigate("/dashboard")}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Gerenciamento de Usuários</h1>
+            <p className="text-muted-foreground">Gerencie todos os usuários do sistema</p>
+          </div>
         </div>
+        <UserCreateDialog onSuccess={loadUsers} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -215,6 +198,7 @@ export default function UsersManagement() {
                   <TableRow>
                     <TableHead>Nome</TableHead>
                     <TableHead>Email</TableHead>
+                    <TableHead>Telefone</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Data de Criação</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
@@ -225,62 +209,22 @@ export default function UsersManagement() {
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.full_name}</TableCell>
                       <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.phone || "-"}</TableCell>
                       <TableCell>
                         <Badge variant={getRoleBadgeVariant(user.role)}>
                           {getRoleLabel(user.role)}
                         </Badge>
                       </TableCell>
                       <TableCell>{new Date(user.created_at).toLocaleDateString("pt-BR")}</TableCell>
-                      <TableCell className="text-right">
-                        <Dialog open={dialogOpen && selectedUser?.id === user.id} onOpenChange={(open) => {
-                          setDialogOpen(open);
-                          if (!open) setSelectedUser(null);
-                        }}>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setNewRole(user.role);
-                                setDialogOpen(true);
-                              }}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Editar Role do Usuário</DialogTitle>
-                              <DialogDescription>
-                                Altere a role de {user.full_name}
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                              <div className="space-y-2">
-                                <Label>Role</Label>
-                                <Select value={newRole} onValueChange={(value) => setNewRole(value as AppRole)}>
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                    <SelectItem value="agent">Agente</SelectItem>
-                                    <SelectItem value="user">Usuário</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                            <div className="flex justify-end gap-2">
-                              <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                                Cancelar
-                              </Button>
-                              <Button onClick={handleEditRole}>
-                                Salvar
-                              </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                      <TableCell>
+                        <div className="flex justify-end gap-2">
+                          <UserEditDialog user={user} onSuccess={loadUsers} />
+                          <UserDeleteDialog
+                            userId={user.id}
+                            userName={user.full_name}
+                            onSuccess={loadUsers}
+                          />
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
