@@ -29,9 +29,11 @@ interface UserRole {
 type AppRole = "admin" | "agent" | "user";
 
 interface UserOrganization {
-  id: string;
+  membership_id: string;
+  organization_id: string;
   name: string;
   role: 'owner' | 'admin' | 'agent' | 'viewer';
+  is_active: boolean;
 }
 
 interface UserWithRole extends UserProfile {
@@ -67,6 +69,7 @@ export default function UsersManagement() {
         .select(`
           *,
           organization_members!organization_members_user_id_fkey(
+            id,
             organization_id,
             role,
             is_active,
@@ -93,9 +96,11 @@ export default function UsersManagement() {
         const userOrgs = (profile as any).organization_members
           ?.filter((om: any) => om.is_active && om.organizations)
           .map((om: any) => ({
-            id: om.organizations.id,
+            membership_id: om.id,
+            organization_id: om.organizations.id,
             name: om.organizations.name,
-            role: om.role
+            role: om.role,
+            is_active: om.is_active
           })) || [];
 
         const userRole = rolesMap.get(profile.id) as AppRole | undefined;
@@ -220,7 +225,7 @@ export default function UsersManagement() {
             <h4 className="text-sm font-semibold">Organizações do Usuário</h4>
             <div className="space-y-2">
               {organizations.map((org) => (
-                <div key={org.id} className="flex items-center justify-between p-2 rounded border">
+                <div key={org.organization_id} className="flex items-center justify-between p-2 rounded border">
                   <span className="text-sm font-medium truncate flex-1">{org.name}</span>
                   <Badge variant={getOrgRoleBadgeVariant(org.role)} className="ml-2 text-xs">
                     {getOrgRoleLabel(org.role)}
