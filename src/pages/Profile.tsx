@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Loader2, LogOut, User } from "lucide-react";
 
@@ -33,6 +34,10 @@ export default function Profile() {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -100,6 +105,49 @@ export default function Profile() {
       toast.error("Erro ao atualizar perfil");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error("Preencha todos os campos de senha");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("As senhas não coincidem");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error("A nova senha deve ter no mínimo 6 caracteres");
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw error;
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      
+      toast.success("Senha alterada com sucesso!");
+    } catch (error: any) {
+      console.error("Error changing password:", error);
+      
+      if (error.message?.includes("New password should be different")) {
+        toast.error("A nova senha deve ser diferente da atual");
+      } else {
+        toast.error("Erro ao alterar senha. Verifique sua senha atual.");
+      }
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -244,6 +292,60 @@ export default function Profile() {
                 </span>
               </div>
             </div>
+          </div>
+
+          <Separator className="my-6" />
+
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold">Alterar Senha</h3>
+              <p className="text-sm text-muted-foreground">
+                Atualize sua senha de acesso ao sistema
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Senha Atual</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Digite sua senha atual"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Nova Senha</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Digite a nova senha (mín. 6 caracteres)"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Digite a nova senha novamente"
+              />
+            </div>
+
+            <Button 
+              onClick={handleChangePassword} 
+              disabled={changingPassword}
+              variant="secondary"
+              className="w-full"
+            >
+              {changingPassword && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Alterar Senha
+            </Button>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
