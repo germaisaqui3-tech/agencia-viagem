@@ -33,6 +33,9 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('[QuickAddCustomer] organizationId:', organizationId);
+    console.log('[QuickAddCustomer] orgLoading:', orgLoading);
+    
     // Validação antecipada antes de setar loading
     if (orgLoading) {
       toast.error("Aguarde, carregando dados da organização...");
@@ -40,6 +43,7 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
     }
 
     if (!organizationId) {
+      console.error('[QuickAddCustomer] organizationId is null/undefined');
       toast.error("Organização não encontrada. Por favor, recarregue a página.");
       return;
     }
@@ -55,6 +59,8 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
         setLoading(false);
         return;
       }
+      
+      console.log('[QuickAddCustomer] Inserting customer with org:', organizationId);
 
       const { data, error } = await supabase
         .from("customers")

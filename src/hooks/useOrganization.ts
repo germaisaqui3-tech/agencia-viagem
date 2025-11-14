@@ -12,7 +12,10 @@ export const useOrganization = () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         
+        console.log('[useOrganization] User:', user?.id);
+        
         if (!user) {
+          console.log('[useOrganization] No user found');
           setLoading(false);
           return;
         }
@@ -24,8 +27,11 @@ export const useOrganization = () => {
           .eq('user_id', user.id)
           .maybeSingle();
 
+        console.log('[useOrganization] Role data:', roleData);
+
         // Se não tem role, não redirecionar - deixar useAuthProtection lidar
         if (!roleData) {
+          console.log('[useOrganization] No role found');
           setLoading(false);
           return;
         }
@@ -37,8 +43,11 @@ export const useOrganization = () => {
           .eq('id', user.id)
           .single();
 
+        console.log('[useOrganization] Profile default_org:', profile?.default_organization_id);
+
         if (profile?.default_organization_id) {
           setOrganizationId(profile.default_organization_id);
+          console.log('[useOrganization] Set organizationId from profile:', profile.default_organization_id);
         } else {
           // Fallback: buscar primeira organização do usuário
           const { data: membership } = await supabase
@@ -50,8 +59,11 @@ export const useOrganization = () => {
             .limit(1)
             .maybeSingle();
 
+          console.log('[useOrganization] Membership org:', membership?.organization_id);
+
           if (membership) {
             setOrganizationId(membership.organization_id);
+            console.log('[useOrganization] Set organizationId from membership:', membership.organization_id);
             // Atualizar como padrão
             await supabase
               .from('profiles')
@@ -59,6 +71,7 @@ export const useOrganization = () => {
               .eq('id', user.id);
           } else {
             // Usuário não tem organização - redirecionar para criar
+            console.log('[useOrganization] No organization found, redirecting...');
             const currentPath = window.location.pathname;
             if (currentPath !== '/organization/create' && currentPath !== '/auth' && !currentPath.startsWith('/invite/')) {
               navigate('/organization/create');
@@ -66,9 +79,10 @@ export const useOrganization = () => {
           }
         }
       } catch (error) {
-        console.error('Erro ao carregar organização:', error);
+        console.error('[useOrganization] Error loading organization:', error);
       } finally {
         setLoading(false);
+        console.log('[useOrganization] Loading complete');
       }
     };
 
