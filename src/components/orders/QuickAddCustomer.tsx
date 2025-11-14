@@ -168,7 +168,7 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading || orgLoading || !organizationId} variant="gradient">
+            <Button type="submit" disabled={loading || orgLoading} variant="gradient">
               {orgLoading ? "Carregando..." : loading ? "Adicionando..." : "Adicionar Cliente"}
             </Button>
           </div>

@@ -189,7 +189,7 @@ export const QuickAddPackage = ({ open, onOpenChange, onPackageCreated }: QuickA
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading || orgLoading || !organizationId} variant="gradient">
+            <Button type="submit" disabled={loading || orgLoading} variant="gradient">
               {orgLoading ? "Carregando..." : loading ? "Adicionando..." : "Adicionar Pacote"}
             </Button>
           </div>
