@@ -32,6 +32,18 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validação antecipada antes de setar loading
+    if (orgLoading) {
+      toast.error("Aguarde, carregando dados da organização...");
+      return;
+    }
+
+    if (!organizationId) {
+      toast.error("Organização não encontrada. Por favor, recarregue a página.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -40,12 +52,6 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         toast.error("Usuário não autenticado");
-        setLoading(false);
-        return;
-      }
-
-      if (!organizationId) {
-        toast.error("Organização não encontrada");
         setLoading(false);
         return;
       }
@@ -162,8 +168,8 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading || orgLoading} variant="gradient">
-              {loading ? "Adicionando..." : "Adicionar Cliente"}
+            <Button type="submit" disabled={loading || orgLoading || !organizationId} variant="gradient">
+              {orgLoading ? "Carregando..." : loading ? "Adicionando..." : "Adicionar Cliente"}
             </Button>
           </div>
         </form>
