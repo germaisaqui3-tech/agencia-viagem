@@ -194,7 +194,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Enviar email via Resend
     const emailResponse = await resend.emails.send({
-      from: "Agência de Viagem <onboarding@resend.dev>",
+      from: "Agência de Viagem <nao_responda@maisaqui.com.br>",
       to: [email],
       subject: "Recuperação de Senha - Agência de Viagem",
       html: emailHtml,
