@@ -305,12 +305,14 @@ const OrderCreate = () => {
           open={customerDialogOpen}
           onOpenChange={setCustomerDialogOpen}
           onCustomerCreated={handleCustomerCreated}
+          organizationId={organizationId}
         />
 
         <QuickAddPackage
           open={packageDialogOpen}
           onOpenChange={setPackageDialogOpen}
           onPackageCreated={handlePackageCreated}
+          organizationId={organizationId}
         />
       </main>
     </div>

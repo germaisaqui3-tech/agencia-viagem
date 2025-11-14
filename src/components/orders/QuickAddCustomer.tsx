@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { quickAddCustomerSchema } from "@/lib/validations";
 import { z } from "zod";
-import { useOrganization } from "@/hooks/useOrganization";
 import { CpfInput } from "@/components/ui/cpf-input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { cleanCpf, cleanPhone } from "@/lib/utils";
@@ -17,10 +16,10 @@ interface QuickAddCustomerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCustomerCreated: (customerId: string) => void;
+  organizationId: string | null;
 }
 
-export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: QuickAddCustomerProps) => {
-  const { organizationId, loading: orgLoading } = useOrganization();
+export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated, organizationId }: QuickAddCustomerProps) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: "",
@@ -33,17 +32,7 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('[QuickAddCustomer] organizationId:', organizationId);
-    console.log('[QuickAddCustomer] orgLoading:', orgLoading);
-    
-    // Validação antecipada antes de setar loading
-    if (orgLoading) {
-      toast.error("Aguarde, carregando dados da organização...");
-      return;
-    }
-
     if (!organizationId) {
-      console.error('[QuickAddCustomer] organizationId is null/undefined');
       toast.error("Organização não encontrada. Por favor, recarregue a página.");
       return;
     }
@@ -59,8 +48,6 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
         setLoading(false);
         return;
       }
-      
-      console.log('[QuickAddCustomer] Inserting customer with org:', organizationId);
 
       const { data, error } = await supabase
         .from("customers")
@@ -174,8 +161,8 @@ export const QuickAddCustomer = ({ open, onOpenChange, onCustomerCreated }: Quic
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading || orgLoading} variant="gradient">
-              {orgLoading ? "Carregando..." : loading ? "Adicionando..." : "Adicionar Cliente"}
+            <Button type="submit" disabled={loading} variant="gradient">
+              {loading ? "Adicionando..." : "Adicionar Cliente"}
             </Button>
           </div>
         </form>

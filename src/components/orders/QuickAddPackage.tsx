@@ -9,16 +9,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { packageSchema } from "@/lib/validations";
 import { z } from "zod";
 import { Textarea } from "@/components/ui/textarea";
-import { useOrganization } from "@/hooks/useOrganization";
 
 interface QuickAddPackageProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPackageCreated: (packageId: string) => void;
+  organizationId: string | null;
 }
 
-export const QuickAddPackage = ({ open, onOpenChange, onPackageCreated }: QuickAddPackageProps) => {
-  const { organizationId, loading: orgLoading } = useOrganization();
+export const QuickAddPackage = ({ open, onOpenChange, onPackageCreated, organizationId }: QuickAddPackageProps) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -32,12 +31,6 @@ export const QuickAddPackage = ({ open, onOpenChange, onPackageCreated }: QuickA
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validação antecipada antes de setar loading
-    if (orgLoading) {
-      toast.error("Aguarde, carregando dados da organização...");
-      return;
-    }
-
     if (!organizationId) {
       toast.error("Organização não encontrada. Por favor, recarregue a página.");
       return;
@@ -189,8 +182,8 @@ export const QuickAddPackage = ({ open, onOpenChange, onPackageCreated }: QuickA
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading || orgLoading} variant="gradient">
-              {orgLoading ? "Carregando..." : loading ? "Adicionando..." : "Adicionar Pacote"}
+            <Button type="submit" disabled={loading} variant="gradient">
+              {loading ? "Adicionando..." : "Adicionar Pacote"}
             </Button>
           </div>
         </form>
