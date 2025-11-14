@@ -30,8 +30,9 @@ const Auth = () => {
         return;
       }
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      // Chamar Edge Function customizada para envio de email em português
+      const { data, error } = await supabase.functions.invoke('send-password-reset', {
+        body: { email }
       });
 
       if (error) throw error;
@@ -40,6 +41,7 @@ const Auth = () => {
       setIsForgotPassword(false);
       setEmail("");
     } catch (error: any) {
+      console.error("Erro ao enviar email de recuperação:", error);
       toast.error("Erro ao enviar email de recuperação");
     } finally {
       setLoading(false);
