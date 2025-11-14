@@ -7,6 +7,7 @@ import { MainLayout } from "./components/layout/MainLayout";
 import { ProtectedRoute } from "./components/admin/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Packages from "./pages/Packages";
 import Customers from "./pages/Customers";
@@ -41,6 +42,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
           <Route path="/packages" element={<MainLayout><Packages /></MainLayout>} />
           <Route path="/customers" element={<MainLayout><Customers /></MainLayout>} />
