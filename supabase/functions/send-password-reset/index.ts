@@ -120,7 +120,7 @@ const handler = async (req: Request): Promise<Response> => {
     .button {
       display: inline-block;
       background: linear-gradient(135deg, #3B82F6, #1E40AF);
-      color: white;
+      color: #ffffff !important;
       padding: 16px 48px;
       text-decoration: none;
       border-radius: 8px;
@@ -167,7 +167,7 @@ const handler = async (req: Request): Promise<Response> => {
     </div>
     
     <div class="button-container">
-      <a href="${resetLink}" class="button">
+      <a href="${resetLink}" class="button" style="color: #ffffff !important; text-decoration: none;">
         Redefinir Senha
       </a>
     </div>
