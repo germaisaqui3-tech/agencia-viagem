@@ -31,6 +31,18 @@ export const QuickAddPackage = ({ open, onOpenChange, onPackageCreated }: QuickA
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validação antecipada antes de setar loading
+    if (orgLoading) {
+      toast.error("Aguarde, carregando dados da organização...");
+      return;
+    }
+
+    if (!organizationId) {
+      toast.error("Organização não encontrada. Por favor, recarregue a página.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -39,12 +51,6 @@ export const QuickAddPackage = ({ open, onOpenChange, onPackageCreated }: QuickA
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         toast.error("Usuário não autenticado");
-        setLoading(false);
-        return;
-      }
-
-      if (!organizationId) {
-        toast.error("Organização não encontrada");
         setLoading(false);
         return;
       }
@@ -183,8 +189,8 @@ export const QuickAddPackage = ({ open, onOpenChange, onPackageCreated }: QuickA
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading || orgLoading} variant="gradient">
-              {loading ? "Adicionando..." : "Adicionar Pacote"}
+            <Button type="submit" disabled={loading || orgLoading || !organizationId} variant="gradient">
+              {orgLoading ? "Carregando..." : loading ? "Adicionando..." : "Adicionar Pacote"}
             </Button>
           </div>
         </form>
