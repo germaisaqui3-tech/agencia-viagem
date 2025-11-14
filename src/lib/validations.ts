@@ -106,6 +106,11 @@ export const packageSchema = z.object({
     .refine((val) => Number(val) <= 365, "Duração deve ser no máximo 365 dias"),
   price: z
     .string()
+    .transform((val) => {
+      // Remove formatação de moeda (R$, pontos e vírgulas)
+      const cleanValue = val.replace(/[R$\s.]/g, '').replace(',', '.');
+      return cleanValue;
+    })
     .refine((val) => !isNaN(Number(val)) && Number(val) > 0, "Preço deve ser maior que 0")
     .refine((val) => Number(val) <= 1000000, "Preço deve ser no máximo R$ 1.000.000"),
   available_spots: z
