@@ -11,11 +11,40 @@ import { authLoginSchema, authSignupSchema } from "@/lib/validations";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const result = authLoginSchema.pick({ email: true }).safeParse({ email });
+      if (!result.success) {
+        toast.error(result.error.errors[0].message);
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      toast.success("Email de recuperação enviado! Verifique sua caixa de entrada.");
+      setIsForgotPassword(false);
+      setEmail("");
+    } catch (error: any) {
+      toast.error("Erro ao enviar email de recuperação");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,17 +106,23 @@ const Auth = () => {
             <Plane className="w-6 h-6 text-white" />
           </div>
           <CardTitle className="text-2xl">
-            {isLogin ? "Bem-vindo de volta" : "Criar conta"}
+            {isForgotPassword 
+              ? "Recuperar senha" 
+              : isLogin 
+                ? "Bem-vindo de volta" 
+                : "Criar conta"}
           </CardTitle>
           <CardDescription>
-            {isLogin
-              ? "Entre para gerenciar sua agência de viagens"
-              : "Cadastre-se para começar a gerenciar"}
+            {isForgotPassword
+              ? "Digite seu email para receber o link de recuperação"
+              : isLogin
+                ? "Entre para gerenciar sua agência de viagens"
+                : "Cadastre-se para começar a gerenciar"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleAuth} className="space-y-4">
-            {!isLogin && (
+          <form onSubmit={isForgotPassword ? handleForgotPassword : handleAuth} className="space-y-4">
+            {!isLogin && !isForgotPassword && (
               <div className="space-y-2">
                 <Label htmlFor="fullName">Nome completo</Label>
                 <Input
@@ -111,28 +146,52 @@ const Auth = () => {
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+            {!isForgotPassword && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={loading} variant="gradient">
-              {loading ? "Processando..." : isLogin ? "Entrar" : "Cadastrar"}
+              {loading 
+                ? "Processando..." 
+                : isForgotPassword 
+                  ? "Enviar link de recuperação"
+                  : isLogin 
+                    ? "Entrar" 
+                    : "Cadastrar"}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm">
+          <div className="mt-4 text-center text-sm space-y-2">
+            {!isForgotPassword && isLogin && (
+              <button
+                type="button"
+                onClick={() => setIsForgotPassword(true)}
+                className="text-primary hover:underline block w-full"
+              >
+                Esqueci minha senha
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-primary hover:underline"
+              onClick={() => {
+                setIsForgotPassword(false);
+                setIsLogin(!isLogin);
+              }}
+              className="text-primary hover:underline block w-full"
             >
-              {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Faça login"}
+              {isForgotPassword 
+                ? "Voltar ao login"
+                : isLogin 
+                  ? "Não tem conta? Cadastre-se" 
+                  : "Já tem conta? Faça login"}
             </button>
           </div>
         </CardContent>

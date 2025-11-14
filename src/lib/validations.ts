@@ -161,6 +161,20 @@ export const authSignupSchema = z.object({
     .max(100, "Nome deve ter no máximo 100 caracteres"),
 });
 
+export const resetPasswordSchema = z.object({
+  password: z
+    .string()
+    .min(8, "A senha deve ter no mínimo 8 caracteres")
+    .max(72, "Senha deve ter no máximo 72 caracteres")
+    .regex(/[A-Z]/, "A senha deve conter ao menos uma letra maiúscula")
+    .regex(/[a-z]/, "A senha deve conter ao menos uma letra minúscula")
+    .regex(/[0-9]/, "A senha deve conter ao menos um número"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "As senhas não coincidem",
+  path: ["confirmPassword"],
+});
+
 // User management schemas (admin)
 export const userCreateSchema = z.object({
   email: z
@@ -216,5 +230,6 @@ export type PackageFormData = z.infer<typeof packageSchema>;
 export type OrderFormData = z.infer<typeof orderSchema>;
 export type AuthLoginData = z.infer<typeof authLoginSchema>;
 export type AuthSignupData = z.infer<typeof authSignupSchema>;
+export type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
 export type UserCreateData = z.infer<typeof userCreateSchema>;
 export type UserUpdateData = z.infer<typeof userUpdateSchema>;
