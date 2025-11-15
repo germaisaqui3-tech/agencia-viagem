@@ -17,11 +17,12 @@ export const useOrganization = () => {
           return;
         }
 
-        // Verificar se usuário tem role
+        // Verificar se usuário tem role (usando limit(1) para lidar com múltiplas roles)
         const { data: roleData } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id)
+          .limit(1)
           .maybeSingle();
 
         // Se não tem role, não redirecionar - deixar useAuthProtection lidar

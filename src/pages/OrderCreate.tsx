@@ -89,6 +89,17 @@ const OrderCreate = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Verificação robusta de organizationId
+    if (!organizationId) {
+      if (orgLoading) {
+        toast.error("Aguarde o carregamento dos dados da organização");
+      } else {
+        toast.error("Organização não encontrada. Verifique suas permissões.");
+      }
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -100,12 +111,6 @@ const OrderCreate = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         toast.error("Usuário não autenticado");
-        setLoading(false);
-        return;
-      }
-
-      if (!organizationId) {
-        toast.error("Organização não encontrada");
         setLoading(false);
         return;
       }
