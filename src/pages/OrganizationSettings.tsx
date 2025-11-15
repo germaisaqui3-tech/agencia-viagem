@@ -54,7 +54,7 @@ interface Member {
   profiles: {
     full_name: string;
     email: string;
-  };
+  } | null;
 }
 
 interface Invite {
@@ -380,8 +380,10 @@ export default function OrganizationSettings() {
               <TableBody>
                 {members.map((member) => (
                   <TableRow key={member.id}>
-                    <TableCell className="font-medium">{member.profiles.full_name}</TableCell>
-                    <TableCell>{member.profiles.email}</TableCell>
+                    <TableCell className="font-medium">
+                      {member.profiles?.full_name || "Usuário sem perfil"}
+                    </TableCell>
+                    <TableCell>{member.profiles?.email || "Email não disponível"}</TableCell>
                     <TableCell>{getRoleBadge(member.role)}</TableCell>
                     <TableCell>
                       {new Date(member.joined_at).toLocaleDateString("pt-BR")}
