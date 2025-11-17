@@ -37,7 +37,7 @@ const Auth = () => {
 
       if (error) throw error;
 
-      toast.success("Email de recuperação enviado! Verifique sua caixa de entrada.");
+      toast.success(data?.message || "Se o email existir, você receberá um link de recuperação");
       setIsForgotPassword(false);
       setEmail("");
     } catch (error: any) {

@@ -52,6 +52,23 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (error) {
       console.error("Erro ao gerar link de recuperação:", error);
+      
+      // Por segurança, retornar sucesso mesmo se usuário não existir
+      // Isso previne enumeration attacks
+      if (error.code === 'user_not_found') {
+        console.log("Usuário não encontrado, mas retornando sucesso por segurança");
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            message: "Se o email existir, você receberá um link de recuperação"
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+      
       throw error;
     }
 
@@ -205,7 +222,7 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: "Email de recuperação enviado com sucesso" 
+        message: "Se o email existir, você receberá um link de recuperação" 
       }),
       {
         status: 200,
